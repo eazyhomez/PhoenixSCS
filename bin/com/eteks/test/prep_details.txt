@@ -1,0 +1,4 @@
+Prep:
+------
+1. Get inner wall segments
+2. Calculate valid wall segments
