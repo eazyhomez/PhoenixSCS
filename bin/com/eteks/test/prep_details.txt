@@ -3,3 +3,10 @@ Prep:
 1. Get inner wall segments
 2. Calculate all valid wall segments
 3. Get all FWS of a room (Living) below the given elevation (7' : door height)
+
+Code
+----
+A. Get all FWS in room
+B. Placement of SCSRect
+C. Snap to the nearest wall
+D. Place all configs of SCS Rects
