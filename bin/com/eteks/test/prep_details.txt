@@ -1,4 +1,5 @@
 Prep:
 ------
 1. Get inner wall segments
-2. Calculate valid wall segments
+2. Calculate all valid wall segments
+3. Get all FWS of a room (Living) below the given elevation (7' : door height)

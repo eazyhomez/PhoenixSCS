@@ -2,13 +2,10 @@ package com.eteks.test;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
 
-import javax.sound.sampled.Line;
 import javax.swing.JOptionPane;
 
 import com.eteks.sweethome3d.io.HomeFileRecorder;
@@ -34,14 +31,16 @@ public class PhoenixSCS extends Plugin
 
 		public Home home = null;
 		public Room room = null;
-		public Room livingRoom = null;
+		//public Room livingRoom = null;
+		
+		public Wall bckWall = null;
 		
 		public String homeFilepath = "";	
 
 		// ======================= BOOLEAN FLAGS ======================= //
 		
-		public boolean bShowMarkerInter = true;
-		public boolean bShowMarker = false;
+		public boolean bShowMarkerInter = false;
+		public boolean bShowMarker = true;
 		
 		// ======================= CONSTANTS ======================= //
 		
@@ -67,12 +66,20 @@ public class PhoenixSCS extends Plugin
 		public float CONV_IN_M = 100.0f;
 		public float CONV_IN_CM = 2.54f;
 		public float CONV_FT_CM = (12.0f * CONV_IN_CM);
-
+		public float ROOM_CONV_SQCM_SQFT = 0.00107639104f;
+		
 		public float VALID_RS_LENGTH = (3.0f * CONV_FT_CM);
 		public float DOOR_ELEVATION = (7.0f * CONV_FT_CM);
 		public float WALL_HEIGHT = (9.0f * CONV_FT_CM);
 		
+		public float ACCESS_CHECK_SIZE = 4.0f * CONV_FT_CM;
+		
 		public float VALID_SCS_RADIUS = (15.0f * CONV_FT_CM);
+
+		public int validDesignCount = 0;
+		
+		public Integer orgWallColor = -1184274;
+		
 		// ======================= GLOBALS ======================= //	
 		
 		public List<String> furnIds = new ArrayList<String>();
@@ -92,6 +99,71 @@ public class PhoenixSCS extends Plugin
 
 		public List<String> markBoxName = new ArrayList<String>();
 		public HomePieceOfFurniture[] markBoxes = new HomePieceOfFurniture[MARKBOX_COUNT];	
+		
+		public List<SCSConfig> scsConfigList = new ArrayList<SCSConfig>();
+		public List<float[][]> scsSeatingConfigList = new ArrayList<float[][]>();
+		
+		public List<Design> validDesignList = new ArrayList<Design>();
+		
+		// ======================= SCS CONSTANTS ======================= //
+		
+		public float SCS_RECT_W = 2.5f;
+		public float SCS_RECT_D1 = 4.75f;
+		
+		public float ROOM_AREA_S_MIN = 0.0f;		
+		public float ROOM_AREA_S_MAX = 325.0f;
+		
+		public float ROOM_AREA_M_MIN = 326.0f;
+		public float ROOM_AREA_M_MAX = 500.0f;
+		
+		public float ROOM_AREA_L_MIN = 501.0f;
+		public float ROOM_AREA_L_MAX = 1000.0f;
+		
+		public float TWO_SEATER_INDEX = 0.0f;
+		public int[][] TWO_SEATER_DESIGN_RANGE = {{0,0}};
+		
+		public float THREE_SEATER_INDEX = 1.0f;
+		public int[][] THREE_SEATER_DESIGN_RANGE = {{0,0}};
+		
+		public float FOUR_SEATER_INDEX = 2.0f;
+		public int[][] FOUR_SEATER_DESIGN_RANGE = {{0,0}};
+		
+		public float FIVE_SEATER_INDEX = 3.0f;
+		public int[][] FIVE_SEATER_DESIGN_RANGE = {{0,0}};
+		
+		public float SIX_SEATER_INDEX = 4.0f;
+		public int[][] SIX_SEATER_DESIGN_RANGE = {{0,0}};
+
+		public float[][][] scsDimsArr = {{{ROOM_AREA_M_MIN, ROOM_AREA_M_MAX},{TWO_SEATER_INDEX}}, {{ROOM_AREA_L_MIN, ROOM_AREA_L_MAX},{TWO_SEATER_INDEX}}};
+		public int[][][] scsConfigArr = {TWO_SEATER_DESIGN_RANGE, THREE_SEATER_DESIGN_RANGE, FOUR_SEATER_DESIGN_RANGE, FIVE_SEATER_DESIGN_RANGE, SIX_SEATER_DESIGN_RANGE};
+
+		//public float[][][] scsDimsArr = {{{ROOM_AREA_M_MIN, ROOM_AREA_M_MAX},{TWO_SEATER_INDEX, THREE_SEATER_INDEX}}, {{ROOM_AREA_L_MIN, ROOM_AREA_L_MAX},{FOUR_SEATER_INDEX, FIVE_SEATER_INDEX, SIX_SEATER_INDEX}}};
+		
+		public String[] configLabelArr = {"2 Seater", "3 Seater", "4 Seater", "5 Seater", "6 Seater"};
+		
+		public String[] seatingTypeArr = {	"1_seater_sofa",
+											"2_seater_sofa",
+											"3_seater_sofa",
+											"media_cabinet",
+											"settee",
+											"center_table",
+											"corner_table",
+											"area_rug"	};
+
+		public float[][] seatingDimsArr = {	{(2.5f*CONV_FT_CM), (2.5f*CONV_FT_CM)},
+											{(2.5f*CONV_FT_CM), (2.0f*2.5f*CONV_FT_CM)},
+											{(2.5f*CONV_FT_CM), (3.0f*2.5f*CONV_FT_CM)},
+											{(2.5f*CONV_FT_CM), (4.0f*CONV_FT_CM)},
+											{(2.0f*CONV_FT_CM), (2.5f*2.5f*CONV_FT_CM)},
+											{(3.0f*CONV_FT_CM), (2.0f*2.5f*CONV_FT_CM)},
+											{(2.0f*CONV_FT_CM), (2.0f*CONV_FT_CM)},
+											{(4.0f*2.5f*CONV_FT_CM), (6.0f*2.5f*CONV_FT_CM)} };
+		
+		public int[] seatingPref = {0,0,0,0,0,0,0,0,0,3,4,0};
+		
+		public String[][] catNamesArr = {{"1_sofa"}, {"2_sofa"}, {"3_sofa"}, {"media_cabinet"}, {"chair"}, {"glass table", "coffee table"}, {"corner_table"}, {"area_rug"}};
+		
+		public String catTextArr = "Gray waves wallpaper";
 		
 		// ======================= CLASSES ======================= //		
 		
@@ -210,12 +282,12 @@ public class PhoenixSCS extends Plugin
 			}
 		}
 
-		public class PCSConfig
+		public class SCSConfig
 		{
 			float d;
 			float w;
 			
-			public PCSConfig(float depth , float width)
+			public SCSConfig(float depth , float width)
 			{
 				d = depth;
 				w = width;
@@ -224,13 +296,13 @@ public class PhoenixSCS extends Plugin
 		
 		public class Design
 		{
-			HomeFurnitureGroup pcsGrp;
+			HomeFurnitureGroup scsGrp;
 			int confIndx;
 			int seatingIndx;
 			
 			public Design(HomeFurnitureGroup fGrp, int cIndx , int sIndx)
 			{
-				pcsGrp = fGrp;
+				scsGrp = fGrp;
 				confIndx = cIndx;
 				seatingIndx = sIndx;
 			}
@@ -273,6 +345,9 @@ public class PhoenixSCS extends Plugin
 
 				markBoxes = getMarkerBoxes();
 				
+				genConfigList(SCS_RECT_W, SCS_RECT_D1);
+				genSeatingConfigList(SCS_RECT_W, SCS_RECT_D1);
+				
 				long startTime = System.currentTimeMillis(); //System.nanoTime();
 				
 				// ============================== PREP  ================================= //
@@ -287,8 +362,35 @@ public class PhoenixSCS extends Plugin
 				
 				// 2. Calculate valid wall segments  ------- //
 				
-				getValidInnerWSInLDRoom(innerWSList, pcsMidP);
+				List<WallSegement> validWSList = getValidInnerWSInLDRoom(innerWSList, pcsMidP);
+				
+				List<WallSegement> finalWSList = shortlistWallSegments(validWSList, VALID_RS_LENGTH);
 
+				validDesignCount = 0;
+				int nameCounter = 1;
+				
+				List<int[][]> activeSCSConfList = getLivingConfigs();
+				
+				for(int c = 0; c < activeSCSConfList.size(); c++)
+				{		
+					int[][] scsConfArr = activeSCSConfList.get(c);
+					
+					for(int x = 0; x < scsConfArr.length; x++)
+					{					
+						int scsConfIndx = scsConfArr[x][0];
+						int scsSeatingIndx = scsConfArr[x][1];
+								
+						HomePieceOfFurniture scsRect = getFurnItemFromCatalog("SCSRect").clone();
+						scsRect.setName("SCSRect_" + nameCounter);
+						scsRect.setWidth(scsConfigList.get(scsConfIndx).w);
+						scsRect.setDepth(scsConfigList.get(scsConfIndx).d);
+						
+						placeSCSRectWithSnap(finalWSList, scsRect, innerWSList, validWSList, tolerance, scsSeatingIndx);
+						
+						nameCounter++;
+					}					
+				}
+				
 				// ===================================================================== //
 				
 				long endTime = System.currentTimeMillis(); //System.nanoTime();				
@@ -304,6 +406,51 @@ public class PhoenixSCS extends Plugin
 			}			
 		}
 		
+		public List<int[][]> getLivingConfigs()
+		{	
+			List<int[][]> activeSCSConfList = new ArrayList<int[][]>();
+			List<String> configLabel = new ArrayList<String>();
+			
+			float roomSize = room.getArea() * ROOM_CONV_SQCM_SQFT;
+
+			for(int x = 0 ; x < scsDimsArr.length; x++)
+			{
+				if((scsDimsArr[x][0][0] <= roomSize) && (roomSize <= scsDimsArr[x][0][1]))
+				{							
+					for(int y = 0 ; y < scsDimsArr[x][1].length; y++)
+					{
+						int indx = new Float(scsDimsArr[x][1][y]).intValue();
+						
+						int[][] activeConfList = scsConfigArr[indx];
+						activeSCSConfList.add(activeConfList);
+						configLabel.add(configLabelArr[indx]);
+					}
+				}
+			}
+			
+			String dbgStr = "roomSize : " + roomSize + " sq. ft. \n\n-------- Initial Configs ---------\n";			
+			
+			for(int c = 0; c < activeSCSConfList.size(); c++)
+			{
+				dbgStr += configLabel.get(c) + ": \n";		
+				int[][] confL = activeSCSConfList.get(c);
+						
+				for(int x = 0; x < confL.length; x++)
+				{
+					if(x == 0)
+						dbgStr += (confL[x][1]);
+					else
+						dbgStr += (", " + confL[x][1]);
+				}
+				
+				dbgStr += "\n\n";
+			}
+			
+			//dbgStr += activePCSConfList.toString() + "\n";						
+			//JOptionPane.showMessageDialog(null, dbgStr);
+			
+			return activeSCSConfList;
+		}
 		
 		public List<WallSegement> getInnerWalls()
 		{
@@ -417,8 +564,6 @@ public class PhoenixSCS extends Plugin
 			return freeWSList;
 		}
 		
-		// ======================= PREVIOUS ======================= //
-		
 		public List<WallSegement> shortlistWallSegments(List<WallSegement> inWSList, float reqLen)
 		{
 			List<WallSegement> finalWSList = new ArrayList<WallSegement>();
@@ -428,148 +573,543 @@ public class PhoenixSCS extends Plugin
 				if(ws.len >= reqLen)
 				{
 					finalWSList.add(ws);
+					
+					if(bShowMarker)
+					{
+						Points vfwsMid = new Points(((ws.startP.x + ws.endP.x) / 2.0f), ((ws.startP.y + ws.endP.y) / 2.0f));
+						putMarkers(vfwsMid, 4);
+					}
 				}
 			}
 
 			return finalWSList;
 		}
-
-		public List<WallSegement> calcFreeWallIntersectionsBelowElev(List<WallSegement> validWSList, float elv, Room r, float tolr)
+		
+		public void placeSCSRectWithSnap(List<WallSegement> finalWSList, HomePieceOfFurniture scsRect, List<WallSegement> inWSList, List<WallSegement> validWSList, float tolr, int scsSeatingIndx)
 		{
-			List<WallSegement> freeWallSegList = new ArrayList<WallSegement>();
+			boolean bSuccess = false;
+			
+			int counter = 1;
 
-			// Compare which furn obj have elevation less than "elv"
-			// Take intersection points for objects whose elevation < "elv"
+			for(WallSegement ws : finalWSList)
+			{				
+				LineSegement ls = new LineSegement(ws);
 
-			try
-			{
-				for(WallSegement ws : validWSList)
+				Accessibility accessBox = new Accessibility(false, 0.0f, 0.0f);
+
+				HomePieceOfFurniture hpfP = scsRect.clone();
+				hpfP.setName(scsRect.getName() + "_" + counter);
+				
+				Points scsPoint = calcFurnMids(ws.startP, ws.endP, (0.5f * hpfP.getDepth()), room);
+				placeFurnParallelToWall(ls, hpfP, scsPoint);
+				
+				storeFurnParams(hpfP);
+				boolean bIntersects = checkIntersectWithAllFurns(hpfP, accessBox.bAddAccess);		// do not ignore AccBox as of now
+				clearFurnParams(hpfP);
+				
+				if(!bIntersects)
 				{
-					TreeMap<Float, Intersect> interMap = new TreeMap<Float, Intersect>();
-
-					Intersect wallS = new Intersect(ws.startP, 0.0f);
-					interMap.put(0.0f, wallS);
-
-					Intersect wallE = new Intersect(ws.endP, ws.len);
-					interMap.put(ws.len, wallE);
-
-					// Debug
-					//Points midPWS = new Points(((ws.startP.x + ws.endP.x)/2.0f),((ws.startP.y + ws.endP.y)/2.0f));
-					//putMarkers(midPWS, 5);
-
-					for(int f = 0; f < furnElevs.size(); f++)
+					HomePieceOfFurniture hpPlaced = searchMatchFurn(hpfP.getName());						
+					chkFurnOrient(hpPlaced, ws);		// returns orientation (180*)
+					
+					boolean bValid = checkAndSnap(hpPlaced, inWSList, tolr);
+					
+					JOptionPane.showMessageDialog(null, "bValid : " + bValid);
+					
+					if(bValid)
 					{
-						float furnElev = furnElevs.get(f);
-
-						if(elv >= furnElev)
-						{							
-							LineSegement ref = new LineSegement(ws.startP, ws.endP);								
-							List<Intersect> interList = checkIntersect(ref, furnIds.get(f));
-
-							int interCount = 0;
-
-							for(Intersect inter : interList)
-							{
-								//if(r.containsPoint(inter.p.x, inter.p.y, tolr))
-								if(checkPointInBetween(inter.p, ws.startP, ws.endP, tolr))
-								{			
-									interCount++;
-
-									interMap.put(inter.dist, inter);
-
-									if(bShowMarkerInter)
-										putMarkers(inter.p, 3);
-								}
-							}
-
-							if(interCount == 1)
-							{
-								float X = furnList.get(f).getX();
-								float Y = furnList.get(f).getY();
-
-								Points midP = new Points(X, Y);
-
-								float calcDS = calcDistance(midP, ws.startP);
-								float calcDE = calcDistance(midP, ws.endP);
-
-								Intersect inter;
-
-								//if((calcDS <= calcDE) && (calcDS <= tolr))
-								if(calcDS <= calcDE)
-								{
-									inter = new Intersect(ws.startP, 0.5f);
-									interMap.put(inter.dist, inter);
-
-									//if(bShowMarkerInter)
-									//putMarkers(inter.p, 4);
-								}
-								//else if(calcDE <= tolr)
-								else
-								{
-									inter = new Intersect(ws.endP, (ws.len - 0.5f));
-									interMap.put(inter.dist, inter);
-
-									//if(bShowMarkerInter)
-									//putMarkers(inter.p, 4);
-								}
-							}
+						bSuccess = checkInsideHome(finalWSList, hpPlaced, PLACEMENT_TOLERANCE);
+						
+						if(bSuccess)
+						{	
+							JOptionPane.showMessageDialog(null, "bSuccess : " + bSuccess);
+							//placeRealFurn(hpPlaced, scsSeatingIndx);
 						}
 					}
-
-					// Truncate the map so that end point is ws.endP	
-					NavigableMap<Float, Intersect> interSet = interMap.headMap(ws.len, true);
-
-					Set<Float> keys = interSet.keySet();
-					List<Intersect> inList = new ArrayList<Intersect>();
-
-					for(Float k : keys)
+					else
 					{
-						inList.add(interSet.get(k));
-					}					
+						bSuccess = false;
+					}
+				}
+				
+				home.deletePieceOfFurniture(hpfP);	
+				
+				counter++;
+			}
+		}
+		
+		public boolean checkAndSnap(HomePieceOfFurniture hpRef, List<WallSegement> inWSList, float tolr)
+		{
+			List<HomePieceOfFurniture> finalRectList = new ArrayList<HomePieceOfFurniture>();
+			
+			boolean bSnapped = false;
+			
+			Points furnCenter = new Points(hpRef.getX(), hpRef.getY());
+			
+			float[][] fRect = hpRef.getPoints();
+			
+			//String furnRect = ("furn : " + fRect[0][0] + "," + fRect[0][1] + " / " + fRect[1][0] + "," + fRect[1][1] + " / " + fRect[2][0] + "," + fRect[2][1] + " / " + fRect[3][0] + "," + fRect[3][1] + "\n\n");
+			//JOptionPane.showMessageDialog(null, furnRect);
+			
+			for(int f = 0; f < fRect.length; f++)
+			{
+				if(f == 2)
+					continue;		// Forward snap not needed
+				
+				Points startP = new Points(fRect[f][0], fRect[f][1]);
+				Points endP = null;
 
-					for(int k = 1; k < inList.size();)
+				if(f == (fRect.length - 1))
+					endP = new Points(fRect[0][0], fRect[0][1]);
+				else
+					endP = new Points(fRect[f+1][0], fRect[f+1][1]);
+				
+				LineSegement fs = new LineSegement(startP, endP);
+				
+				//putMarkers(startP, 2);
+				//putMarkers(endP, 2);
+						
+				for(WallSegement ws : inWSList)
+				{					
+					LineSegement ls = new LineSegement(ws);
+					
+					boolean bIsParallel = isParallel(fs, ls, tolr);
+					
+					if(bIsParallel)
 					{
-						Intersect inter1 = inList.get(k - 1);
-						Intersect inter2 = inList.get(k);
-
-						WallSegement fws = new WallSegement(inter1.p, inter2.p, (inter2.dist - inter1.dist));
+						//Points wsMidP = new Points(((ls.startP.x + ls.endP.x)/2),(ls.startP.y + ls.endP.y)/2);
+						//putMarkers(wsMidP, 7);
 						
-						freeWallSegList.add(fws);
+						float dist = calcDistanceParallel(fs, ls, tolr);
 						
-						if(bShowMarkerInter)
+						if(dist <= SNAP_TOLERANCE)
 						{
-							putMarkers(fws.startP, 1);
-							putMarkers(fws.endP, 2);
+							List<Points> snapPList = calcSnapCoordinate(ls, fs, dist, tolr);
+							
+							for(Points snapP : snapPList)
+							{
+								Points centerFS = new Points(((fs.startP.x + fs.endP.x)/2.0f),(fs.startP.y + fs.endP.y)/2.0f);								
+								
+								Points snapCoords = new Points((snapP.x - centerFS.x), (snapP.y - centerFS.y));	
+								
+								hpRef.setX(furnCenter.x + snapCoords.x);
+								hpRef.setY(furnCenter.y + snapCoords.y);
+								
+								//putMarkers(new Points(hpRef.getX(), hpRef.getY()), 6);
+								
+								boolean bValid = false;
+								
+								boolean bLiesOnWall = checkFace(hpRef.getPoints(), f, inWSList, tolr);
+								
+								//JOptionPane.showMessageDialog(null, "bLiesOnWall : " + bLiesOnWall + ", " + f);
+										
+								if(!bLiesOnWall)
+								{
+									hpRef.setX(furnCenter.x);
+									hpRef.setY(furnCenter.y);
+								}
+								else
+								{
+									if(f == 0)
+									{
+										float currX = hpRef.getX();
+										float currY = hpRef.getY();
+										
+										float newX = (currX + furnCenter.x) / 2.0f;
+										float newY = (currY + furnCenter.y) / 2.0f;
+										
+										hpRef.setX(newX);
+										hpRef.setY(newY);
+										
+										float elongLen = calcDistance(new Points(currX, currY), new Points(furnCenter.x, furnCenter.y));
+										
+										float currDep = hpRef.getDepth();
+										hpRef.setDepth(currDep + elongLen);
+										
+										//JOptionPane.showMessageDialog(null, "Stretch !!!");
+									}
+									
+									bValid = checkInsideRoom(room, hpRef.getPoints(), PLACEMENT_TOLERANCE);
+								}
+								
+								if(bValid)
+								{
+									//JOptionPane.showMessageDialog(null, "bValid : " + bValid);
+									
+									furnCenter = new Points(hpRef.getX(), hpRef.getY());									
+									finalRectList.add(hpRef.clone());
+																		
+									//Points p = new Points(furnCenter.x, furnCenter.y);
+									//putMarkers(p, 3);
+									
+									if(f != 0)
+									{
+										bSnapped = true;
+										break;
+									}								
+								}
+								else
+								{
+									hpRef.setX(furnCenter.x);
+									hpRef.setY(furnCenter.y);
+								}
+							}								
 						}
+					}
+					
+					if(bSnapped)
+						break;				
+				}
+				
+				if(bSnapped)
+					break;
+			}
+			
+			boolean bInRoom = checkInsideRoom(room, hpRef.getPoints(), PLACEMENT_TOLERANCE);
+			
+			return bInRoom;
+		}
+
+		public void placeRealFurn(HomePieceOfFurniture scsRect, int seatingIndx)
+		{			
+			bckWall = null;
+			
+			List<HomePieceOfFurniture> furnList = new ArrayList<HomePieceOfFurniture>();
+			List<Integer> refIndxList = new ArrayList<Integer>();
+			
+			//HomePieceOfFurniture accBox = getFurnItem("accBox").clone();
+			HomePieceOfFurniture accBox = getFurnItemFromCatalog("box_invisible").clone();
+			
+			float[][] scsRectP = scsRect.getPoints();
+			
+			Points refOrigin = new Points(scsRectP[0][0], scsRectP[0][1]);			
+			//putMarkers(refOrigin, 1);
+			
+			float scsAngle = scsRect.getAngle();
+					
+			float[][] seatingConf = scsSeatingConfigList.get(seatingIndx);
+			
+			for(int f = 0; f < seatingConf.length; f++)
+			{						
+				int furnType = new Float(seatingConf[f][0]).intValue();
+				refIndxList.add(furnType);
+				
+				String furnName = seatingTypeArr[furnType];
+				
+				//JOptionPane.showMessageDialog(null, seatingConf.length);
+				
+				float furnX = refOrigin.x + seatingConf[f][1];
+				float furnY = refOrigin.y + seatingConf[f][2];
+				float furnAng = (((float) (Math.PI * seatingConf[f][3])) / 180.0f);
+					
+				//JOptionPane.showMessageDialog(null, furnName + " -> " + furnX + ", " + furnY + " : " + furnAng);
+				
+				HomePieceOfFurniture hpf = getFurnItemFromCatalog(furnName).clone();
+				hpf.setName(furnType + "_" + furnName + "_" + seatingIndx + "_" + f);
+				hpf.setX(furnX);
+				
+				if(furnName.equalsIgnoreCase("media_cabinet"))
+					hpf.setY(furnY - (0.5f*hpf.getDepth()));
+				else
+					hpf.setY(furnY);
+					
+				hpf.setAngle(furnAng);
+				furnList.add(hpf);
+				
+				//JOptionPane.showMessageDialog(null, furnAng);
+			}
+			
+			HomeFurnitureGroup furnGrp = new HomeFurnitureGroup(furnList, (scsRect.getName() + "_Group"));
+			List<HomePieceOfFurniture> realFurnList = new ArrayList<HomePieceOfFurniture>();
+			
+			float grpAng = furnGrp.getAngle();
+			
+			furnGrp.setX(scsRect.getX());
+			furnGrp.setY(scsRect.getY());
+			furnGrp.setAngle(scsAngle + grpAng);
+			
+			//float grpAng2 = furnGrp.getAngle();
+			//String dbg = (180.0f * grpAng / (float) Math.PI) + "\n";
+			//dbg += (180.0f * scsAngle / (float) Math.PI) + " -> " + (180.0f * grpAng2 / (float) Math.PI);
+			//JOptionPane.showMessageDialog(null, dbg);
+			
+			for(HomePieceOfFurniture hp : furnGrp.getFurniture())
+			{
+				home.addPieceOfFurniture(hp);
+			}
+			
+			//home.deletePieceOfFurniture(scsRect);	
+			
+			List<Points> accPList = getAccessbilityPoints(scsRect, (ACCESS_CHECK_SIZE / 2), tolerance);
+			
+			if(accPList.size() > 1)
+			{			
+				Points accP1 = accPList.get(0);
+				Points accP2 = accPList.get(1);
+				
+				//putMarkers(accP1, 3);
+				//putMarkers(accP2, 3);
+				
+				float d = calcDistance(accP1, accP2);
+				float angle = (float) Math.atan(Math.abs((accP2.y - accP1.y)/(accP2.x - accP1.x)));
+				
+				try
+				{
+					accBox.setName("SCSAccessBox");
+					accBox.setX((accP1.x + accP2.x)/2.0f);
+					accBox.setY((accP1.y + accP2.y)/2.0f);
+					accBox.setWidth(d);
+					accBox.setDepth(ACCESS_CHECK_SIZE);
+					accBox.setAngle(angle);
+					home.addPieceOfFurniture(accBox);
+					
+					PhoenixPathway pathway = new PhoenixPathway();
+					boolean bSuccess = pathway.execute(home, getUserPreferences(), accBox);
+					
+					if(bSuccess)
+					{
+						home.deletePieceOfFurniture(accBox);
+						//JOptionPane.showMessageDialog(null, "SCS Design generated !!!");
 						
-						k+= 2;
+						String name = scsRect.getName();
+						home.deletePieceOfFurniture(scsRect);
+						
+						realFurnList = populateFurn(furnGrp, refIndxList);
+						
+						if(realFurnList.size() > 0)
+						{
+							saveDesign(home, name);
+							validDesignCount++;
+						}						
+
+						//Design des = new Design(furnGrp, seatingIndx, p);
+						//validDesignList.add(des);
+						
+						cleanupRealFurnAndWall(realFurnList, bckWall);
+					}
+					
+					cleanupMarkers();
+					furnGrp.setAngle(0.0f);
+					
+				}
+				catch(Exception e)
+				{
+					JOptionPane.showMessageDialog(null," -xxxxxx- EXCEPTION : " + e.getMessage()); 	
+					
+					if(home != null)
+					{
+						home.deletePieceOfFurniture(accBox);					
+						furnGrp.setAngle(0.0f);
+						
+						cleanupRealFurnAndWall(realFurnList, bckWall);
+					}
+				}
+				finally
+				{
+					if(home != null)
+					{
+						home.deletePieceOfFurniture(accBox);					
+						furnGrp.setAngle(0.0f);
+						
+						cleanupRealFurnAndWall(realFurnList, bckWall);
 					}
 				}
 			}
-			catch(Exception e) 
-			{
-				JOptionPane.showMessageDialog(null," -x-x-x- EXCEPTION [calcFreeWallIntersectionsBelowElev]: " + e.getMessage()); 
-				e.printStackTrace();
-			}
-
-			return freeWallSegList;
+			else
+				JOptionPane.showMessageDialog(null, "Accessibility points not found !!!");
 		}
-
-		// ======================= INIT FUNCTIONS ======================= //
-
-		public void getLivingRoom()
-		{			
-			for(Room r : home.getRooms())
-			{			
-				String roomName = r.getName();
-
-				if((roomName != null) && (roomName.equalsIgnoreCase("living")))
+		
+		public List<HomePieceOfFurniture> populateFurn(HomeFurnitureGroup furnGrp, List<Integer> refIndxList)
+		{		
+			List<HomePieceOfFurniture> hpList = new ArrayList<HomePieceOfFurniture>();
+			
+			for(int h = 0; h <furnGrp.getFurniture().size(); h++)
+			{
+				HomePieceOfFurniture hp = furnGrp.getFurniture().get(h);
+				int prefIndx = seatingPref[refIndxList.get(h)];
+				
+				String[] nameStr = hp.getName().split("_");
+				
+				if(nameStr.length > 0)
 				{
-					livingRoom = r;
+					int indx = Integer.parseInt(nameStr[0]);
+							
+					HomePieceOfFurniture realFurn = null;
+					
+					if(catFurnList.get(indx).size() > prefIndx)
+						realFurn = catFurnList.get(indx).get(prefIndx).clone();
+					else
+						realFurn = catFurnList.get(indx).get(0).clone();				
+					
+					realFurn.setName(hp.getName());
+					realFurn.setX(hp.getX());
+					realFurn.setY(hp.getY());
+					realFurn.setAngle(hp.getAngle());
+					
+					// Wallpaper behind Media Cabinet
+					if(indx == 7)	
+					{
+						Points hpMid = new Points(hp.getX(), hp.getY());						
+						populateWallFurn(hpMid, catTextArr, 0);
+
+						realFurn.setDepth(hp.getDepth());
+					}
+					else if(indx != 10)
+					{
+						realFurn.setWidth(hp.getWidth());
+						realFurn.setDepth(hp.getDepth());
+					}
+
+					home.addPieceOfFurniture(realFurn);
+					home.deletePieceOfFurniture(hp);
+					hpList.add(realFurn);
+				}
+			}
+			
+			return hpList;
+		}
+		
+		public List<Points> getAccessbilityPoints(HomePieceOfFurniture hp, float accDist, float tolr)
+		{
+			List<Points> accPList = new ArrayList<Points>();
+			
+			float[][] fRect = hp.getPoints();
+			
+			Points startP1 = new Points(fRect[2][0], fRect[2][1]);
+			Points endP1 = new Points(fRect[1][0], fRect[1][1]);
+			
+			Points startP2 = new Points(fRect[3][0], fRect[3][1]);
+			Points endP2 = new Points(fRect[0][0], fRect[0][1]);
+			
+			List<Points> accPList1 = getIntersectionCircleLine(startP1, accDist, startP1, endP1);
+			
+			for(Points p : accPList1)
+			{				
+				if(checkPointOnSameSide(p, endP1, startP1, startP2))
+					accPList.add(p);
+				
+				if(bShowMarkerInter)
+					putMarkers(p, 5);
+			}
+			
+			List<Points> accPList2 = getIntersectionCircleLine(startP2, accDist, startP2, endP2);
+			
+			for(Points p : accPList2)
+			{				
+				if(checkPointOnSameSide(p, endP2, startP1, startP2))
+					accPList.add(p);
+				
+				if(bShowMarkerInter)
+					putMarkers(p, 5);
+			}
+			
+			return accPList;
+		}
+		
+		public boolean checkFace(float[][] fRect, int indx, List<WallSegement> inWSList, float tolr)
+		{
+			boolean bLiesOnWall = false;
+			
+			Points fStartP = new Points(fRect[indx][0], fRect[indx][1]);
+			
+			Points fEndP = new Points(fRect[0][0], fRect[0][1]);
+			
+			if((indx+1) < fRect.length)
+				fEndP = new Points(fRect[indx+1][0], fRect[indx+1][1]);
+			
+			for(WallSegement ws : inWSList)
+			{
+				LineSegement ls = new LineSegement(ws);
+				
+				boolean b1 = checkPointInBetween(fStartP, ls.startP, ls.endP, tolr);
+				boolean b2 = checkPointInBetween(fEndP, ls.startP, ls.endP, tolr);
+				
+				if(b1 && b2)
+				{
+					bLiesOnWall = true;
+					break;
+				}
+				
+				//if(!b1)
+				{
+					//float lenF = calcDistance(fStartP, fEndP);
+					//float lenW = calcDistance(ls.startP, ls.endP);
+				}	
+				
+				b1 = checkPointInBetween(ls.startP, fStartP, fEndP, tolr);				
+				b2 = checkPointInBetween(ls.endP, fStartP, fEndP, tolr);
+				
+				if(b1 && b2)
+				{
+					bLiesOnWall = true;
 					break;
 				}
 			}
+			
+			return bLiesOnWall;
 		}
+			
+		public void populateWallFurn(Points midP, String textName, int prefIndx)
+		{				
+			float minDist = INFINITY;
+			float[][] wRect = new float[0][0];
+			
+			for(int w = 0; w < wallLists.size(); w++)
+			{
+				Wall ws = wallLists.get(w);
+				Points wallMidP = new Points(((ws.getXStart() + ws.getXEnd())/2.0f), ((ws.getYStart() + ws.getYEnd())/2.0f));
+				
+				float d = calcDistance(wallMidP, midP);
+				
+				if(d < minDist)
+				{
+					minDist = d;
+					bckWall = ws;
+					wRect = wallRects.get(w);
+				}
+			}
+			
+			Points wallSP = new Points(bckWall.getXStart(), bckWall.getYStart());			
+			Points wallEP = new Points(bckWall.getXEnd(), bckWall.getYEnd());
+			Points wallMP =  new Points(((wallSP.x + wallEP.x) / 2), ((wallSP.y + wallEP.y) / 2));
+			
+			Points w0 = new Points(wRect[0][0], wRect[0][1]);
+			Points w1 = new Points(wRect[1][0], wRect[1][1]);
+			Points w2 = new Points(wRect[2][0], wRect[2][1]);
+			Points w3 = new Points(wRect[3][0], wRect[3][1]);
+
+			List<HomeTexture> htList = searchMatchTexture(textName);
+			
+			boolean b1 = checkPointOnSameSide(midP, wallMP, w0, w1);
+			
+			if(b1)
+			{
+				//Points midWS =  new Points(((w0.x + w1.x) / 2), ((w0.y + w1.y) / 2));
+				//putMarkers(midWS, 1);
+				
+				if(htList.size() > prefIndx)
+					bckWall.setRightSideTexture(htList.get(prefIndx));	// apply on right side
+				else if(htList.size() > 0)
+					bckWall.setRightSideTexture(htList.get(0));
+			}
+			
+			boolean b2 = checkPointOnSameSide(midP, wallMP, w2, w3);
+			
+			if(b2)
+			{	
+				//Points midWS =  new Points(((w0.x + w1.x) / 2), ((w0.y + w1.y) / 2));
+				//putMarkers(midWS, 3);
+				
+				if(htList.size() > prefIndx)
+					bckWall.setLeftSideTexture(htList.get(prefIndx)); // apply on left side
+				else if(htList.size() > 0)
+					bckWall.setLeftSideTexture(htList.get(0));
+			}
+			
+			//JOptionPane.showMessageDialog(null, "b1 : " + b1 + ", b2 : " + b2);
+		}
+		
+		// ======================= INIT FUNCTIONS ======================= //
 
 		public void init()
 		{
@@ -679,7 +1219,46 @@ public class PhoenixSCS extends Plugin
 			//JOptionPane.showMessageDialog(null, furnRect);
 		}
 
+		public void genConfigList(float x, float y1)
+		{
+			scsConfigList = new ArrayList<SCSConfig>();
+			
+			// Config 1 : 1 - 4.75 ft
+			SCSConfig scsConf = new SCSConfig((y1 + x)*CONV_FT_CM, ((2*x) + 1.0f)*CONV_FT_CM);
+			scsConfigList.add(scsConf);
+		}
+		
+		public void genSeatingConfigList(float x, float y1)
+		{
+			scsSeatingConfigList = new ArrayList<float[][]>();
+			
+			// -------------------------------- 4 Seater -------------------------------- //
+			
+			// Seating Config 1
+			float[][] seatingConf1 = {	{0.0f, (x*0.5f + 1.0f)*CONV_FT_CM, (x*0.5f)*CONV_FT_CM, 0.0f},
+										{0.0f, ((3.0f*x*0.5f) + 2.0f)*CONV_FT_CM, (x*0.5f)*CONV_FT_CM, 0.0f},	
+										{5.0f, (x + 1.5f)*CONV_FT_CM, ((3.0f*x*0.5f) + 1.0f)*CONV_FT_CM, 180.0f}  };
+			
+			scsSeatingConfigList.add(seatingConf1);			
+		}
+		
 		// ======================= UTIL FUNCTIONS ======================= //
+		
+		public void saveDesign(Home h, String name)
+		{
+			try
+			{
+				Home hClone = h.clone();
+				hClone.setName(name + "_Home");
+				
+				HomeRecorder recorder = new HomeFileRecorder();
+				recorder.writeHome(h, (homeFilepath + File.separatorChar + name  + "_Home" + ".sh3d")); 
+			}
+			catch (Exception e)
+			{
+				JOptionPane.showMessageDialog(null, " x-x-x EXCEPTION while saving design !!!");		
+			}
+		}
 		
 		public void cleanupMarkers()
 		{
@@ -689,6 +1268,23 @@ public class PhoenixSCS extends Plugin
 					home.deletePieceOfFurniture(hpf);
 			}
 		}	
+		
+		public void cleanupRealFurnAndWall(List<HomePieceOfFurniture> fList, Wall w)
+		{					
+			for(HomePieceOfFurniture hpf : fList)
+			{
+				home.deletePieceOfFurniture(hpf);
+			}
+			
+			if(w != null)
+			{
+				w.setRightSideColor(orgWallColor);
+				w.setRightSideTexture(null);
+				
+				w.setLeftSideColor(orgWallColor);
+				w.setLeftSideTexture(null);
+			}
+		}
 		
 		public boolean checkPointOnSameSide(Points a, Points b, Points pS1, Points pS2)
 		{
@@ -826,7 +1422,7 @@ public class PhoenixSCS extends Plugin
 			{
 				Points pt = sortedPList.get(p);
 				
-				if(!livingRoom.containsPoint(pt.x, pt.y, ROOM_TOLERANCE))
+				if(!room.containsPoint(pt.x, pt.y, ROOM_TOLERANCE))
 					sortedPList.remove(p);
 				
 				//putMarkers(p, 3);
@@ -970,7 +1566,6 @@ public class PhoenixSCS extends Plugin
 			
 			return txtList;
 		}
-		
 		
 		public Points calcFurnMids(Points p1, Points p2, float d, Room inRoom)
 		{
@@ -1139,7 +1734,7 @@ public class PhoenixSCS extends Plugin
 			}
 		}
 
-		public boolean checkIntersectWithAllFurns(HomePieceOfFurniture hpf, boolean bAddAccessibility, boolean bIgnoreAccBox)
+		public boolean checkIntersectWithAllFurns(HomePieceOfFurniture hpf, boolean bAddAccessibility)
 		{
 			boolean bIntersects = false;
 
@@ -1736,7 +2331,7 @@ public class PhoenixSCS extends Plugin
 			return retPList;
 		}
 
-		public HomePieceOfFurniture getFurnItem(String furnName)
+		public HomePieceOfFurniture getFurnItemFromCatalog(String furnName)
 		{
 			HomePieceOfFurniture matchFurn = null;
 			List<FurnitureCategory> fCatg = getUserPreferences().getFurnitureCatalog().getCategories();		
