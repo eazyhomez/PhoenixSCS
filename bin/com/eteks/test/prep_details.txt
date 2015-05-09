@@ -10,3 +10,4 @@ A. Get all FWS in room
 B. Placement of SCSRect
 C. Snap to the nearest wall
 D. Place all configs of SCS Rects
+E. Placement of real furnitures

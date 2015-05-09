@@ -172,7 +172,9 @@ public class PhoenixSCS extends Plugin
 		public String[][] catNamesArr = {{"Armchair"}, {"2_sofa"}, {"3_sofa"}, {"media_cabinet"}, {"chair"}, {"glass table", "coffee table"}, {"corner_table"}, {"area_rug"}, {"wall_painting"}};
 		
 		public float CENTER_TABLE_HEIGHT = (1.5f * CONV_FT_CM);
-		public String catTextArr = "Gray waves wallpaper";
+		
+		public String[] catTextArr = {"Balanced blue sponge wallpaint", "Blue sponge wallpaint"};
+		public String[] catColArr = {"14481663"};
 		
 		// ======================= CLASSES ======================= //		
 		
@@ -1079,7 +1081,7 @@ public class PhoenixSCS extends Plugin
 			return bLiesOnWall;
 		}
 			
-		public void populateWallFurn(Points midP, String textName, int prefIndx)
+		public void populateWallFurn(Points midP, String[] textureArr, int prefIndx)
 		{				
 			float minDist = INFINITY;
 			float[][] wRect = new float[0][0];
@@ -1108,7 +1110,7 @@ public class PhoenixSCS extends Plugin
 			Points w2 = new Points(wRect[2][0], wRect[2][1]);
 			Points w3 = new Points(wRect[3][0], wRect[3][1]);
 
-			List<HomeTexture> htList = searchMatchTexture(textName);
+			List<HomeTexture> htList = searchMatchTexture(textureArr[1]);
 			
 			boolean b1 = checkPointOnSameSide(midP, wallMP, w0, w1);
 			
@@ -1361,6 +1363,7 @@ public class PhoenixSCS extends Plugin
 	
 				wallLists.add(w);
 				
+				w.setRightSideColor(Integer.parseInt(catColArr[0]));
 				w.setHeight(WALL_HEIGHT);
 				//furnRect = ("Wall_"+ wallCount +" : " + wRect[0][0] + "," + wRect[0][1] + " / " + wRect[1][0] + "," + wRect[1][1] + " / " + wRect[2][0] + "," + wRect[2][1] + " / " + wRect[3][0] + "," + wRect[3][1] + "\n\n");
 
@@ -1384,7 +1387,7 @@ public class PhoenixSCS extends Plugin
 					List<HomePieceOfFurniture> fList =  searchCatalog(fName, w, d);
 					furnList.addAll(fList);
 					
-					JOptionPane.showMessageDialog(null, fName + " : " + fList.size() + " >>>> " + w + ", " + d);
+					//JOptionPane.showMessageDialog(null, fName + " : " + fList.size() + " >>>> " + w + ", " + d);
 				}
 				
 				catFurnList.add(s, furnList);
