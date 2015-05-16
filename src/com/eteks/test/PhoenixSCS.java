@@ -112,8 +112,8 @@ public class PhoenixSCS extends Plugin
 		
 		// ======================= SCS CONSTANTS ======================= //
 		
-		public float SCS_RECT_W = 2.5f;
-		public float SCS_RECT_D1 = 4.75f;
+		public float SCS_RECT_W = 1.0f;
+		public float SCS_RECT_D1 = 1.0f;
 		
 		public float ROOM_AREA_S_MIN = 0.0f;		
 		public float ROOM_AREA_S_MAX = 325.0f;
@@ -125,22 +125,16 @@ public class PhoenixSCS extends Plugin
 		public float ROOM_AREA_L_MAX = 1000.0f;
 		
 		public float TWO_SEATER_INDEX = 0.0f;
-		public int[][] TWO_SEATER_DESIGN_RANGE = {{0,0}};
+		public int[][] TWO_SEATER_DESIGN_RANGE = {{0,0}, {0,2}, {0,3}, {0,5}, {1,1}, {4,13}}; ///{4,15}};
 		
 		public float THREE_SEATER_INDEX = 1.0f;
-		public int[][] THREE_SEATER_DESIGN_RANGE = {{0,0}};
+		public int[][] THREE_SEATER_DESIGN_RANGE = {{2,6}, {4,11}, {4,12}, {4,14}, {4,17}};
 		
 		public float FOUR_SEATER_INDEX = 2.0f;
-		public int[][] FOUR_SEATER_DESIGN_RANGE = {{0,0}};
-		
-		public float FIVE_SEATER_INDEX = 3.0f;
-		public int[][] FIVE_SEATER_DESIGN_RANGE = {{0,0}};
-		
-		public float SIX_SEATER_INDEX = 4.0f;
-		public int[][] SIX_SEATER_DESIGN_RANGE = {{0,0}};
+		public int[][] FOUR_SEATER_DESIGN_RANGE = {{2,8}, {3,7}, {3,9}, {3,10}, {4,16}}; //{0,4}
 
-		public float[][][] scsDimsArr = {{{ROOM_AREA_M_MIN, ROOM_AREA_M_MAX},{TWO_SEATER_INDEX}}, {{ROOM_AREA_L_MIN, ROOM_AREA_L_MAX},{TWO_SEATER_INDEX}}};
-		public int[][][] scsConfigArr = {TWO_SEATER_DESIGN_RANGE, THREE_SEATER_DESIGN_RANGE, FOUR_SEATER_DESIGN_RANGE, FIVE_SEATER_DESIGN_RANGE, SIX_SEATER_DESIGN_RANGE};
+		public float[][][] scsDimsArr = {{{ROOM_AREA_M_MIN, ROOM_AREA_M_MAX},{TWO_SEATER_INDEX, THREE_SEATER_INDEX}}, {{ROOM_AREA_L_MIN, ROOM_AREA_L_MAX},{FOUR_SEATER_INDEX}}};
+		public int[][][] scsConfigArr = {TWO_SEATER_DESIGN_RANGE, THREE_SEATER_DESIGN_RANGE, FOUR_SEATER_DESIGN_RANGE};
 
 		//public float[][][] scsDimsArr = {{{ROOM_AREA_M_MIN, ROOM_AREA_M_MAX},{TWO_SEATER_INDEX, THREE_SEATER_INDEX}}, {{ROOM_AREA_L_MIN, ROOM_AREA_L_MAX},{FOUR_SEATER_INDEX, FIVE_SEATER_INDEX, SIX_SEATER_INDEX}}};
 		
@@ -385,7 +379,7 @@ public class PhoenixSCS extends Plugin
 				
 				List<int[][]> activeSCSConfList = getLivingConfigs();
 				
-				for(int c = 0; c < activeSCSConfList.size(); c++)
+				for(int c = 0; c < 1/*activeSCSConfList.size()*/; c++)
 				{		
 					int[][] scsConfArr = activeSCSConfList.get(c);
 					
@@ -405,6 +399,19 @@ public class PhoenixSCS extends Plugin
 					}					
 				}
 				
+				// 4. Config check  ------- //
+				/*
+				HomePieceOfFurniture hpfTest = searchMatchFurn("SCSRect");
+				
+				int[][] testArr = TWO_SEATER_DESIGN_RANGE;
+				testConf(hpfTest, testArr);
+
+				testArr = THREE_SEATER_DESIGN_RANGE;
+				testConf(hpfTest, testArr);
+				
+				testArr = FOUR_SEATER_DESIGN_RANGE;
+				testConf(hpfTest, testArr);
+				*/
 				// ===================================================================== //
 				
 				long endTime = System.currentTimeMillis(); //System.nanoTime();				
@@ -418,6 +425,32 @@ public class PhoenixSCS extends Plugin
 				JOptionPane.showMessageDialog(null," -x-xxx-x- EXCEPTION : " + e.getMessage());						
 				//JOptionPane.showMessageDialog(null, "No. of Designs generated : " + validDesignCount);
 			}			
+		}
+		
+		public void testConf(HomePieceOfFurniture hpf, int[][] confArr)
+		{
+			for(int x = 0 ; x < confArr.length; x++)
+			{
+				SCSConfig conf = scsConfigList.get(confArr[x][0]);
+				hpf.setWidth(conf.w);
+				hpf.setDepth(conf.d);
+				
+				float[][] hpfRect = hpf.getPoints();
+				Points p0 = new Points(hpfRect[0][0], hpfRect[0][1]);
+				Points p1 = new Points(hpfRect[1][0], hpfRect[1][1]);
+				Points p2 = new Points(hpfRect[2][0], hpfRect[2][1]);
+				
+				Points midPX = new Points(((p0.x + p1.x)/2.0f), ((p0.y + p1.y)/2.0f));
+				Points midPY = new Points(((p1.x + p2.x)/2.0f), ((p1.y + p2.y)/2.0f));
+				
+				hpf.setX(midPX.x);
+				hpf.setY(midPY.y);
+				
+				int seatIndx = confArr[x][1];
+				
+				JOptionPane.showMessageDialog(null, (confArr[x][0] + 1) + ", " + (confArr[x][1] + 1));
+				placeRealFurn(hpf, seatIndx);
+			}
 		}
 		
 		public List<int[][]> getLivingConfigs()
@@ -588,7 +621,7 @@ public class PhoenixSCS extends Plugin
 				{
 					finalWSList.add(ws);
 					
-					if(bShowMarkerInter)
+					//if(bShowMarkerInter)
 					{
 						Points vfwsMid = new Points(((ws.startP.x + ws.endP.x) / 2.0f), ((ws.startP.y + ws.endP.y) / 2.0f));
 						putMarkers(vfwsMid, 4);
@@ -748,10 +781,10 @@ public class PhoenixSCS extends Plugin
 									bValid = checkInsideRoom(room, hpRef.getPoints(), PLACEMENT_TOLERANCE);
 								}
 								
+								JOptionPane.showMessageDialog(null, "bValid : " + bValid);
+								
 								if(bValid)
-								{
-									//JOptionPane.showMessageDialog(null, "bValid : " + bValid);
-									
+								{									
 									furnCenter = new Points(hpRef.getX(), hpRef.getY());									
 									finalRectList.add(hpRef.clone());
 																		
@@ -783,7 +816,7 @@ public class PhoenixSCS extends Plugin
 			
 			boolean bInRoom = checkInsideRoom(room, hpRef.getPoints(), PLACEMENT_TOLERANCE);
 			
-			return bInRoom;
+			return (bSnapped && bInRoom);
 		}
 
 		public void placeRealFurn(HomePieceOfFurniture scsRect, int seatingIndx)
@@ -826,17 +859,20 @@ public class PhoenixSCS extends Plugin
 				hpf.setX(furnX);
 				
 				if(furnName.equalsIgnoreCase("media_cabinet"))
+				{
 					hpf.setY(furnY - (0.5f*hpf.getDepth()));
+				}
 				else if(furnName.equalsIgnoreCase("wall_painting"))
 				{
-					hpf.setHeight(WALL_PAINTING_HEIGHT);
-					hpf.setElevation(WALL_PAINTING_ELEVATION);
-					hpf.setY(furnY - (0.5f*hpf.getDepth()));
+					continue;
+					//hpf.setHeight(WALL_PAINTING_HEIGHT);
+					//hpf.setElevation(WALL_PAINTING_ELEVATION);
+					//hpf.setY(furnY - (0.5f*hpf.getDepth()));
 				}
 				else
 					hpf.setY(furnY);
 					
-				hpf.setAngle(furnAng);
+				hpf.setAngle(furnAng);				
 				furnList.add(hpf);
 				
 				//JOptionPane.showMessageDialog(null, furnAng);
@@ -861,7 +897,7 @@ public class PhoenixSCS extends Plugin
 				home.addPieceOfFurniture(hp);
 			}
 			
-			//home.deletePieceOfFurniture(scsRect);	
+			home.deletePieceOfFurniture(scsRect);	
 			
 			List<Points> accPList = getAccessbilityPoints(scsRect, (ACCESS_CHECK_SIZE / 2), tolerance);
 			
@@ -898,12 +934,13 @@ public class PhoenixSCS extends Plugin
 						//JOptionPane.showMessageDialog(null, "SCS Design generated !!!");
 						
 						String name = scsRect.getName();
-						home.deletePieceOfFurniture(scsRect);
+						//home.deletePieceOfFurniture(scsRect);
 						
 						realFurnList = populateFurn(furnGrp, refIndxList);
 						
 						if(realFurnList.size() > 0)
-						{
+						{ 
+							//JOptionPane.showMessageDialog(null, "SCS Design generated !!!");
 							saveDesign(home, name);
 							validDesignCount++;
 						}						
@@ -912,6 +949,7 @@ public class PhoenixSCS extends Plugin
 						//validDesignList.add(des);
 						
 						cleanupRealFurnAndWall(realFurnList, bckWall);
+						//cleanupRealFurnAndWall(furnGrp.getFurniture(), bckWall);
 					}
 					
 					cleanupMarkers();
@@ -928,6 +966,7 @@ public class PhoenixSCS extends Plugin
 						furnGrp.setAngle(0.0f);
 						
 						cleanupRealFurnAndWall(realFurnList, bckWall);
+						//cleanupRealFurnAndWall(furnGrp.getFurniture(), bckWall);
 					}
 				}
 				finally
@@ -937,7 +976,8 @@ public class PhoenixSCS extends Plugin
 						home.deletePieceOfFurniture(accBox);					
 						furnGrp.setAngle(0.0f);
 						
-						cleanupRealFurnAndWall(realFurnList, bckWall);
+						//----> cleanupRealFurnAndWall(realFurnList, bckWall);
+						cleanupRealFurnAndWall(furnGrp.getFurniture(), bckWall);
 					}
 				}
 			}
@@ -973,15 +1013,15 @@ public class PhoenixSCS extends Plugin
 					realFurn.setAngle(hp.getAngle());
 					
 					// Wallpaper behind Media Cabinet
-					if(indx == 7)	
+					if(indx == 4)	
 					{
-						Points hpMid = new Points(hp.getX(), hp.getY());						
-						populateWallFurn(hpMid, catTextArr, 0);
-
 						realFurn.setDepth(hp.getDepth());
 					}
 					else if(indx == 8)	
 					{
+						Points hpMid = new Points(hp.getX(), hp.getY());						
+						populateWallFurn(hpMid, catTextArr, 0);
+						
 						realFurn.setDepth(hp.getDepth());
 						realFurn.setHeight(hp.getHeight());
 						realFurn.setElevation(hp.getElevation());
@@ -1171,7 +1211,10 @@ public class PhoenixSCS extends Plugin
 						if(elv >= furnElev)
 						{							
 							LineSegement ref = new LineSegement(ws.startP, ws.endP);								
-							List<Intersect> interList = checkIntersect(ref, furnIds.get(f));
+							List<Intersect> interList = new ArrayList<Intersect>();
+							
+							if(!furnIds.get(f).toLowerCase().contains("window"))
+								interList =	checkIntersect(ref, furnIds.get(f));
 
 							int interCount = 0;
 
@@ -1220,6 +1263,14 @@ public class PhoenixSCS extends Plugin
 									//putMarkers(inter.p, 4);
 								}
 							}
+							else if(interCount == 0)
+							{
+								Intersect inter = new Intersect(ws.endP, (ws.len - 0.5f));
+								interMap.put(inter.dist, inter);
+
+								//if(bShowMarkerInter)
+								//putMarkers(inter.p, 5);
+							}
 						}
 					}
 
@@ -1243,7 +1294,7 @@ public class PhoenixSCS extends Plugin
 						
 						freeWallSegList.add(fws);
 						
-						if(bShowMarker)
+						//if(bShowMarker)
 						{
 							putMarkers(fws.startP, 1);
 							putMarkers(fws.endP, 2);
@@ -1398,8 +1449,24 @@ public class PhoenixSCS extends Plugin
 		{
 			scsConfigList = new ArrayList<SCSConfig>();
 			
-			// Config 1 : 1 - 4.75 ft
-			SCSConfig scsConf = new SCSConfig((y1 + x)*CONV_FT_CM, ((2*x) + 2.0f)*CONV_FT_CM);
+			// Config 1 : 
+			SCSConfig scsConf = new SCSConfig((6.0f*x)*CONV_FT_CM, (8.0f*x)*CONV_FT_CM);
+			scsConfigList.add(scsConf);
+			
+			// Config 2 : 
+			scsConf = new SCSConfig((8.0f*x)*CONV_FT_CM, (6.0f*x)*CONV_FT_CM);
+			scsConfigList.add(scsConf);
+			
+			// Config 3 : 
+			scsConf = new SCSConfig((10.0f*x)*CONV_FT_CM, (8.0f*x)*CONV_FT_CM);
+			scsConfigList.add(scsConf);
+			
+			// Config 4 :
+			scsConf = new SCSConfig((8.0f*x)*CONV_FT_CM, (10.0f*x)*CONV_FT_CM);
+			scsConfigList.add(scsConf);
+			
+			// Config 5 : 
+			scsConf = new SCSConfig((8.0f*x)*CONV_FT_CM, (8.0f*x)*CONV_FT_CM);
 			scsConfigList.add(scsConf);
 		}
 		
@@ -1407,16 +1474,158 @@ public class PhoenixSCS extends Plugin
 		{
 			scsSeatingConfigList = new ArrayList<float[][]>();
 			
-			// -------------------------------- 4 Seater -------------------------------- //
+			// -------------------------------- 2 Seater -------------------------------- //
 			
 			// Seating Config 1
-			float[][] seatingConf1 = {	{0.0f, (x*0.5f + 1.0f)*CONV_FT_CM, (x*0.5f)*CONV_FT_CM, -45.0f},
-										{0.0f, ((3.0f*x*0.5f) + 2.0f)*CONV_FT_CM, (x*0.5f)*CONV_FT_CM, 45.0f},	
-										{6.0f, (x + 1.0f)*CONV_FT_CM, ((3.0f*x*0.5f) + 1.0f)*CONV_FT_CM, 180.0f},
-										{7.0f, (x + 1.0f)*CONV_FT_CM, ((3.0f*x*0.5f) + 1.0f)*CONV_FT_CM, 180.0f},
-										{8.0f, (x + 1.0f)*CONV_FT_CM, (y1 + x)*CONV_FT_CM, 180.0f}  };
+			float[][] seatingConf1 = {	{0.0f, (5.0f*x*0.25f)*CONV_FT_CM, (19.0f*x*0.25f)*CONV_FT_CM, 180.0f},
+										{0.0f, (27.0f*x*0.25f)*CONV_FT_CM, (19.0f*x*0.25f)*CONV_FT_CM, 180.0f},	
+										{6.0f, (4.0f*x)*CONV_FT_CM, (3.0f*x)*CONV_FT_CM, 180.0f},
+										{7.0f, (4.0f*x)*CONV_FT_CM, (3.0f*x)*CONV_FT_CM, 0.0f},
+										{8.0f, (4.0f*x)*CONV_FT_CM, (6.0f*x)*CONV_FT_CM, 0.0f}  };
 			
-			scsSeatingConfigList.add(seatingConf1);			
+			scsSeatingConfigList.add(seatingConf1);
+			
+			// Seating Config 2
+			float[][] seatingConf2 = {	{1.0f, (3.0f*x)*CONV_FT_CM, (5.0f*x*0.25f)*CONV_FT_CM, 0.0f},
+										{7.0f, (3.0f*x)*CONV_FT_CM, (4.0f*x)*CONV_FT_CM, 0.0f},
+										{8.0f, (3.0f*x)*CONV_FT_CM, (8.0f*x)*CONV_FT_CM, 0.0f}  };
+			
+			scsSeatingConfigList.add(seatingConf2);	
+			
+			// Seating Config 3
+			float[][] seatingConf3 = {	{0.0f, (5.0f*x*0.25f)*CONV_FT_CM, (3.0f*x)*CONV_FT_CM, 270.0f},
+										{0.0f, (27.0f*x*0.25f)*CONV_FT_CM, (3.0f*x)*CONV_FT_CM, 90.0f},
+										{7.0f, (4.0f*x)*CONV_FT_CM, (3.0f*x)*CONV_FT_CM, 0.0f},
+										{8.0f, (4.0f*x)*CONV_FT_CM, (6.0f*x)*CONV_FT_CM, 180.0f}   };
+			
+			scsSeatingConfigList.add(seatingConf3);	
+			
+			// Seating Config 4
+			float[][] seatingConf4 = {	{1.0f, (4.0f*x)*CONV_FT_CM, (5.0f*x*0.25f)*CONV_FT_CM, 0.0f},
+										{7.0f, (4.0f*x)*CONV_FT_CM, (3.0f*x)*CONV_FT_CM, 0.0f},
+										{8.0f, (4.0f*x)*CONV_FT_CM, (6.0f*x)*CONV_FT_CM, 180.0f}   };
+			
+			scsSeatingConfigList.add(seatingConf4);
+			
+			// Seating Config 5 - Not considered now
+			float[][] seatingConf5 = {};
+			
+			scsSeatingConfigList.add(seatingConf5);		
+			
+			// Seating Config 6
+			float[][] seatingConf6 = {	{0.0f, (7.0f*x*0.25f)*CONV_FT_CM, (5.0f*x*0.25f)*CONV_FT_CM, -45.0f},
+										{0.0f, (25.0f*x*0.25f)*CONV_FT_CM, (5.0f*x*0.25f)*CONV_FT_CM, 45.0f},
+										{6.0f, (4.0f*x)*CONV_FT_CM, (5.0f*x)*CONV_FT_CM, 180.0f},
+										{7.0f, (4.0f*x)*CONV_FT_CM, (5.0f*x)*CONV_FT_CM, 0.0f}  };
+			
+			scsSeatingConfigList.add(seatingConf6);
+			
+			// -------------------------------- 3 Seater -------------------------------- //
+			
+			// Seating Config 7
+			float[][] seatingConf7 = {	{2.0f, (4.0f*x)*CONV_FT_CM, (5.0f*x*0.25f)*CONV_FT_CM, 0.0f},
+										{6.0f, (4.0f*x)*CONV_FT_CM, (5.0f*x)*CONV_FT_CM, 180.0f},
+										{7.0f, (4.0f*x)*CONV_FT_CM, (5.0f*x)*CONV_FT_CM, 0.0f},
+										{8.0f, (4.0f*x)*CONV_FT_CM, (10.0f*x)*CONV_FT_CM, 180.0f}   };
+			
+			scsSeatingConfigList.add(seatingConf7);
+						
+			// -------------------------------- 4 Seater -------------------------------- //
+			
+			// Seating Config 8
+			float[][] seatingConf8 = {	{1.0f, (5.0f*x*0.25f)*CONV_FT_CM, (4.0f*x)*CONV_FT_CM, 270.0f},
+										{1.0f, (35.0f*x*0.25f)*CONV_FT_CM, (4.0f*x)*CONV_FT_CM, 90.0f},
+										{6.0f, (5.0f*x)*CONV_FT_CM, (4.0f*x)*CONV_FT_CM, 90.0f},
+										{7.0f, (5.0f*x)*CONV_FT_CM, (4.0f*x)*CONV_FT_CM, 90.0f}  };
+			
+			scsSeatingConfigList.add(seatingConf8);
+			
+			// Seating Config 9
+			float[][] seatingConf9 = {	{1.0f, (5.0f*x*0.25f)*CONV_FT_CM, (5.0f*x)*CONV_FT_CM, 270.0f},
+										{1.0f, (5.0f*x)*CONV_FT_CM, (5.0f*x*0.25f)*CONV_FT_CM, 0.0f},
+										{6.0f, (5.0f*x)*CONV_FT_CM, (5.0f*x)*CONV_FT_CM, 270.0f},
+										{7.0f, (5.0f*x)*CONV_FT_CM, (5.0f*x)*CONV_FT_CM, 90.0f},
+										{8.0f, (4.0f*x)*CONV_FT_CM, (10.0f*x)*CONV_FT_CM, 180.0f}   };
+			
+			scsSeatingConfigList.add(seatingConf9);
+			
+			// Seating Config 10
+			float[][] seatingConf10 = {	{0.0f, (2.0f*x)*CONV_FT_CM, (5.0f*x*0.5f)*CONV_FT_CM, -45.0f},
+										{0.0f, (8.0f*x)*CONV_FT_CM, (5.0f*x*0.5f)*CONV_FT_CM, 45.0f},
+										{1.0f, (5.0f*x)*CONV_FT_CM, (27.0f*x*0.25f)*CONV_FT_CM, 180.0f},
+										{6.0f, (5.0f*x)*CONV_FT_CM, (4.0f*x)*CONV_FT_CM, 0.0f},
+										{7.0f, (5.0f*x)*CONV_FT_CM, (4.0f*x)*CONV_FT_CM, 0.0f}  };
+			
+			scsSeatingConfigList.add(seatingConf10);
+			
+			// Seating Config 11
+			float[][] seatingConf11 = {	{0.0f, (2.0f*x)*CONV_FT_CM, (2.0f*x)*CONV_FT_CM, -45.0f},
+										{0.0f, (2.0f*x)*CONV_FT_CM, (6.0f*x)*CONV_FT_CM, 225.0f},
+										{0.0f, (8.0f*x)*CONV_FT_CM, (2.0f*x)*CONV_FT_CM, 45.0f},
+										{0.0f, (8.0f*x)*CONV_FT_CM, (6.0f*x)*CONV_FT_CM, 135.0f},
+										{6.0f, (5.0f*x)*CONV_FT_CM, (4.0f*x)*CONV_FT_CM, 0.0f},
+										{7.0f, (5.0f*x)*CONV_FT_CM, (4.0f*x)*CONV_FT_CM, 0.0f}  };
+			
+			scsSeatingConfigList.add(seatingConf11);
+			
+			// Seating Config 12
+			float[][] seatingConf12 = {	{1.0f, (5.0f*x*0.5f)*CONV_FT_CM, (5.0f*x*0.25f)*CONV_FT_CM, 0.0f},
+										{0.0f, (6.0f*x)*CONV_FT_CM, (4.0f*x)*CONV_FT_CM, 45.0f},
+										{7.0f, (2.0f*x)*CONV_FT_CM, (4.0f*x)*CONV_FT_CM, 0.0f},
+										{8.0f, (2.0f*x)*CONV_FT_CM, (8.0f*x)*CONV_FT_CM, 0.0f}  };
+			
+			scsSeatingConfigList.add(seatingConf12);
+			
+			// Seating Config 13
+			float[][] seatingConf13 = {	{2.0f, (4.0f*x)*CONV_FT_CM, (5.0f*x*0.25f)*CONV_FT_CM, 0.0f},
+										{6.0f, (4.0f*x)*CONV_FT_CM, (4.0f*x)*CONV_FT_CM, 180.0f},
+										{7.0f, (4.0f*x)*CONV_FT_CM, (4.0f*x)*CONV_FT_CM, 0.0f},
+										{8.0f, (4.0f*x)*CONV_FT_CM, (8.0f*x)*CONV_FT_CM, 0.0f}  };
+			
+			scsSeatingConfigList.add(seatingConf13);
+			
+			// Seating Config 14
+			float[][] seatingConf14 = {	{0.0f, (5.0f*x*0.5f)*CONV_FT_CM, (3.0f*x)*CONV_FT_CM, -45.0f},
+										{0.0f, (11.0f*x*0.5f)*CONV_FT_CM, (3.0f*x)*CONV_FT_CM, 45.0f},
+										{6.0f, (4.0f*x)*CONV_FT_CM, (4.0f*x)*CONV_FT_CM, 180.0f},
+										{7.0f, (4.0f*x)*CONV_FT_CM, (4.0f*x)*CONV_FT_CM, 0.0f},
+										{8.0f, (4.0f*x)*CONV_FT_CM, (8.0f*x)*CONV_FT_CM, 0.0f}  };
+			
+			scsSeatingConfigList.add(seatingConf14);
+			
+			// Seating Config 15
+			float[][] seatingConf15 = {	{2.0f, (4.0f*x)*CONV_FT_CM, (5.0f*x*0.25f)*CONV_FT_CM, 0.0f},
+										{6.0f, (4.0f*x)*CONV_FT_CM, (4.0f*x)*CONV_FT_CM, 180.0f},
+										{7.0f, (4.0f*x)*CONV_FT_CM, (4.0f*x)*CONV_FT_CM, 0.0f},
+										{8.0f, (4.0f*x)*CONV_FT_CM, (8.0f*x)*CONV_FT_CM, 0.0f}  };
+			
+			scsSeatingConfigList.add(seatingConf15);
+			
+			// Seating Config 16 - Not considered now (Same as 2 with diff dimensions)
+			float[][] seatingConf16 = { };
+			
+			scsSeatingConfigList.add(seatingConf16);
+			
+			// Seating Config 17
+			float[][] seatingConf17 = {	{0.0f, (5.0f*x*0.25f)*CONV_FT_CM, (5.0f*x*0.25f)*CONV_FT_CM, 0.0f},
+										{0.0f, (5.0f*x*0.25f)*CONV_FT_CM, (27.0f*x*0.25f)*CONV_FT_CM, 180.0f},
+										{0.0f, (27.0f*x*0.25f)*CONV_FT_CM, (5.0f*x*0.25f)*CONV_FT_CM, 0.0f},
+										{0.0f, (27.0f*x*0.25f)*CONV_FT_CM, (27.0f*x*0.25f)*CONV_FT_CM, 180.0f},
+										{7.0f, (4.0f*x)*CONV_FT_CM, (4.0f*x)*CONV_FT_CM, 0.0f},
+										{8.0f, (4.0f*x)*CONV_FT_CM, (0.0f*x)*CONV_FT_CM, 0.0f},
+										{8.0f, (4.0f*x)*CONV_FT_CM, (8.0f*x)*CONV_FT_CM, 180.0f}  };
+			
+			scsSeatingConfigList.add(seatingConf17);
+			
+			// Seating Config 18
+			float[][] seatingConf18 = {	{0.0f, (5.0f*x*0.25f)*CONV_FT_CM, (15.0f*x*0.25f)*CONV_FT_CM, 270.0f},
+										{1.0f, (5.0f*x)*CONV_FT_CM, (5.0f*x*0.25f)*CONV_FT_CM, 0.0f},
+										{6.0f, (5.0f*x)*CONV_FT_CM, (4.0f*x)*CONV_FT_CM, 0.0f},
+										{7.0f, (5.0f*x)*CONV_FT_CM, (4.0f*x)*CONV_FT_CM, 90.0f},
+										{8.0f, (4.0f*x)*CONV_FT_CM, (8.0f*x)*CONV_FT_CM, 0.0f}  };
+			
+			scsSeatingConfigList.add(seatingConf18);
+			
 		}
 		
 		// ======================= UTIL FUNCTIONS ======================= //
