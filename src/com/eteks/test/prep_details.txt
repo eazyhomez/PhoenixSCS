@@ -1,3 +1,9 @@
+Modifications:
+--------------
+1. Add new SCS config (No. 8)(lamp + corner table moved)
+2. Check whether SCS needs wall and reject placements accordingly
+
+
 Prep:
 ------
 1. Get inner wall segments
