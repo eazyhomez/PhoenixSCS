@@ -47,6 +47,12 @@ public class PhoenixSCS extends Plugin
 		public boolean bPopulateFurn = true;
 		public boolean bSaveDesign = true;
 		
+		public boolean bIgnoreWithoutWall = true;
+		
+		public boolean bIsSCSWithWall = false;
+		
+		public boolean bCreateAccBoxes = true;
+		
 		// ======================= CONSTANTS ======================= //
 		
 		public int MARKBOX_COUNT = 8;		
@@ -97,6 +103,8 @@ public class PhoenixSCS extends Plugin
 		
 		public float SCS_RECT_POS_LEN = 8.0f*CONV_FT_CM;
 		
+		public float SIMILAR_DESIGN_TOLERANCE = 2.0f*CONV_FT_CM;
+		
 		// ======================= GLOBALS ======================= //	
 		
 		public List<String> furnIds = new ArrayList<String>();
@@ -115,6 +123,10 @@ public class PhoenixSCS extends Plugin
 		public List<Wall> wallLists = new ArrayList<Wall>();
 
 		public List<String> fwsExpIds = new ArrayList<String>();
+		public List<HomePieceOfFurniture> subAccBoxList = new ArrayList<HomePieceOfFurniture>();
+		
+		public List<String> freeSubAccBoxList = new ArrayList<String>();
+		public List<String> currSubAccBoxParent = new ArrayList<String>();
 		
 		public List<String> markBoxName = new ArrayList<String>();
 		public HomePieceOfFurniture[] markBoxes = new HomePieceOfFurniture[MARKBOX_COUNT];	
@@ -144,36 +156,44 @@ public class PhoenixSCS extends Plugin
 		public float ROOM_AREA_L_MAX = 1000.0f;
 		
 		public float TWO_SEATER_INDEX = 0.0f;
-		public int[][] TWO_SEATER_DESIGN_RANGE = {{}};//{{0,0}, {0,2}, {0,3}, {0,5}, {1,1}, {4,13}}; ///{4,15}};
+		public int[][] TWO_SEATER_DESIGN_RANGE = {{1,1,0,0}, {2,2,0,0}, {3,3,0,1}, {3,4,0,1}, {4,6,0,1}};
 		
 		public float THREE_SEATER_INDEX = 1.0f;
-		public int[][] THREE_SEATER_DESIGN_RANGE = {{}};//{{2,6}, {4,11}, {4,12}, {4,14}, {4,17}};
+		public int[][] THREE_SEATER_DESIGN_RANGE = {{4,5,0,1}, {4,7,1,1}, {4,8,0,1}, {5,9,0,1}, {5,13,0,1}, {5,15,1,1}};
 		
 		public float FOUR_SEATER_INDEX = 2.0f;
-		public int[][] FOUR_SEATER_DESIGN_RANGE = {{5,8,3,1}}; //, {3,7}, {3,9}, {3,10}, {4,16}}; //{0,4}
+		public int[][] FOUR_SEATER_DESIGN_RANGE = {{5,10,0,0}, {5,11,3,1}, {5,12,3,1}, {5,14,1,1}, {5,16,0,1}, {6,17,3,1}, {6,18,0,1}, {6,19,3,1}};
 
 		//public float[][][] scsDimsArr = {{{ROOM_AREA_M_MIN, ROOM_AREA_M_MAX},{TWO_SEATER_INDEX, THREE_SEATER_INDEX}}, {{ROOM_AREA_L_MIN, ROOM_AREA_L_MAX},{FOUR_SEATER_INDEX}}};
 		
-		public float[] scsDimsArr = {/*TWO_SEATER_INDEX, THREE_SEATER_INDEX,*/FOUR_SEATER_INDEX};
+		public float[] scsDimsArr = {FOUR_SEATER_INDEX, THREE_SEATER_INDEX, TWO_SEATER_INDEX};
 		public int[][][] scsConfigArr = {TWO_SEATER_DESIGN_RANGE, THREE_SEATER_DESIGN_RANGE, FOUR_SEATER_DESIGN_RANGE};
 
 		//public float[][][] scsDimsArr = {{{ROOM_AREA_M_MIN, ROOM_AREA_M_MAX},{TWO_SEATER_INDEX, THREE_SEATER_INDEX}}, {{ROOM_AREA_L_MIN, ROOM_AREA_L_MAX},{FOUR_SEATER_INDEX, FIVE_SEATER_INDEX, SIX_SEATER_INDEX}}};
 		
 		public String[] configLabelArr = {"2S","3S","4S"};
 		
+		
 		// Add .obj for base objects too
 		public String[] seatingTypeArr = {	"1_seater_sofa",			// 0
-											"2_seater_sofa",			// 1
-											"3_seater_sofa",			// 2
-											"media_cabinet",			// 3
-											"settee",					// 4
-											"center_table",				// 5
-											"corner_table",				// 6
-											"area_rug",					// 7
-											"wall_painting",			// 8
-											"floor_lamp"	 };			// 9
+											"1_seater_sofa",			// 1
+											"2_seater_sofa",			// 2
+											"3_seater_sofa",			// 3
+											"media_cabinet",			// 4
+											"settee",					// 5
+											"center_tableS",			// 6
+											"corner_table",				// 7
+											"area_rug",					// 8
+											"wall_painting",			// 9
+											"floor_lamp",				// 10
+											"flower_vase",				// 11 
+											"tv_stand",					// 12
+											"3_seater_RL_sofa",			// 13
+											"3_seater_LL_sofa",			// 14
+											"5_seater_LL_sofa"};		// 15
 
 		public float[][] seatingDimsArr = {	{(2.5f*CONV_FT_CM), (2.5f*CONV_FT_CM)},
+											{(2.5f*CONV_FT_CM), (2.5f*CONV_FT_CM)},
 											{(2.5f*CONV_FT_CM), (2.0f*2.5f*CONV_FT_CM)},
 											{(2.5f*CONV_FT_CM), (3.0f*2.5f*CONV_FT_CM)},
 											{(2.5f*CONV_FT_CM), (4.0f*CONV_FT_CM)},
@@ -182,18 +202,29 @@ public class PhoenixSCS extends Plugin
 											{(2.0f*CONV_FT_CM), (2.0f*CONV_FT_CM)},
 											{(4.0f*CONV_FT_CM), (6.0f*CONV_FT_CM)},
 											{(0.25f*CONV_FT_CM), (4.0f*CONV_FT_CM)},
-											{(0.3f*CONV_FT_CM), (1.0f*CONV_FT_CM)} };
+											{(0.3f*CONV_FT_CM), (1.0f*CONV_FT_CM)},
+											{(0.8f*CONV_FT_CM), (0.8f*CONV_FT_CM)},
+											{(0.2f*CONV_FT_CM), (1.0f*CONV_FT_CM)},
+											{(2.5f*CONV_FT_CM), (2.5f*2.0f*CONV_FT_CM)},
+											{(2.5f*CONV_FT_CM), (2.5f*2.0f*CONV_FT_CM)},
+											{(2.0f*2.5f*CONV_FT_CM), (2.5f*3.0f*CONV_FT_CM)}};
 				
-		public String[][] catNamesArr = {{"1_sofa"}, 
+		public String[][] catNamesArr = {{"1_sofa1"}, 
+										 {"1_sofa2"},
 										 {"2_sofa"}, 
 										 {"3_sofa"}, 
 										 {"media_cabinet"}, 
 										 {"settee"}, 
-										 {"center_table"}, 
+										 {"center_tableS"}, 
 									 	 {"corner_table"}, 
 										 {"area_rug"}, 
 										 {"wall_painting"},
-										 {"floor_lamp"}};
+										 {"floor_lamp"},
+										 {"flower_vase"},
+										 {"tv"},
+										 {"3_C_1_R_sofa"},
+										 {"3_C_1_L_sofa"},
+										 {"3_C_2_L_sofa"}};
 		
 		public float CENTER_TABLE_HEIGHT = (1.5f * CONV_FT_CM);
 		
@@ -336,25 +367,27 @@ public class PhoenixSCS extends Plugin
 				w = width;
 			}
 		}
-		
+
 		public class Design
 		{
-			HomeFurnitureGroup scsGrp;
+			HomePieceOfFurniture scsRect;
 			int confIndx;
 			int seatingIndx;
-			
-			public Design(HomeFurnitureGroup fGrp, int cIndx , int sIndx)
+			int wallPrefIndx;
+
+			public Design(HomePieceOfFurniture fGrp, int cIndx , int sIndx, int wIndx)
 			{
-				scsGrp = fGrp;
+				scsRect = fGrp;
 				confIndx = cIndx;
 				seatingIndx = sIndx;
+				wallPrefIndx = wIndx;
 			}
 		}
 				
 		public RoomTestAction() 
 		{
 			putPropertyValue(Property.NAME, "PhoenixSCS");
-			putPropertyValue(Property.MENU, "Phoenix-Fresh");
+			putPropertyValue(Property.MENU, "Phoenix-Final");
 
 			// Enables the action by default
 			setEnabled(true);
@@ -399,6 +432,9 @@ public class PhoenixSCS extends Plugin
 				
 				HomePieceOfFurniture pcs = searchMatchFurn("PCSRect");
 				
+				if(pcs == null)
+					pcs = createPCSRect();
+					
 				Points pcsMidP = new Points(pcs.getX(), pcs.getY());
 				putMarkers(pcsMidP, 0);
 				
@@ -413,7 +449,7 @@ public class PhoenixSCS extends Plugin
 				
 				List<int[][]> activeSCSConfList = getLivingConfigs();
 				
-				for(int c = 0; c < 1/*activeSCSConfList.size()*/; c++)
+				for(int c = 0; c < activeSCSConfList.size(); c++)
 				{		
 					int[][] scsConfArr = activeSCSConfList.get(c);
 					
@@ -424,16 +460,27 @@ public class PhoenixSCS extends Plugin
 						int scsWallPrefIndx = scsConfArr[x][2];
 						int scsNeedsWall = scsConfArr[x][3];
 						
+						if((bIgnoreWithoutWall) && (scsNeedsWall == 0))
+						{
+							bIsSCSWithWall = false;
+							continue;
+						}
+						else if (scsNeedsWall == 1)
+						{
+							bIsSCSWithWall = true;
+						}
+						
 						HomePieceOfFurniture scsRect = getFurnItem("SCSRect").clone();
 						scsRect.setName("SCSRect_" + nameCounter);
 						scsRect.setWidth(scsConfigList.get(scsConfIndx).w);
 						scsRect.setDepth(scsConfigList.get(scsConfIndx).d);
 						
-						placeSCSRectWithSnap(finalWSList, scsRect, innerWSList, validWSList, tolerance, scsSeatingIndx, scsWallPrefIndx, scsNeedsWall);
+						placeSCSRectWithSnap(finalWSList, scsRect, innerWSList, validWSList, tolerance, scsConfIndx, scsSeatingIndx, scsWallPrefIndx, scsNeedsWall);
 						
 						nameCounter++;
 					}					
 				}
+				
 				
 				// ============================== CONFIG  ================================= //
 				
@@ -441,15 +488,16 @@ public class PhoenixSCS extends Plugin
 				/*
 				HomePieceOfFurniture hpfTest = searchMatchFurn("SCSRect");
 				
-				int[][] testArr = TWO_SEATER_DESIGN_RANGE;
+				int[][] testArr = FOUR_SEATER_DESIGN_RANGE;
 				testConf(hpfTest, testArr);
 
 				testArr = THREE_SEATER_DESIGN_RANGE;
 				testConf(hpfTest, testArr);
 				
-				testArr = FOUR_SEATER_DESIGN_RANGE;
+				testArr = TWO_SEATER_DESIGN_RANGE;
 				testConf(hpfTest, testArr);
 				*/
+				
 				// ===================================================================== //
 				
 				long endTime = System.currentTimeMillis(); //System.nanoTime();				
@@ -470,9 +518,15 @@ public class PhoenixSCS extends Plugin
 		{
 			for(int x = 0 ; x < confArr.length; x++)
 			{
+				float initWidth = hpf.getWidth();
+				float initDepth = hpf.getDepth();
+				
 				SCSConfig conf = scsConfigList.get(confArr[x][0]);
 				hpf.setWidth(conf.w);
 				hpf.setDepth(conf.d);
+				
+				float adjX = (initWidth - conf.w);
+				float adjY = (initDepth - conf.d);
 				
 				float[][] hpfRect = hpf.getPoints();
 				Points p0 = new Points(hpfRect[0][0], hpfRect[0][1]);
@@ -482,15 +536,25 @@ public class PhoenixSCS extends Plugin
 				Points midPX = new Points(((p0.x + p1.x)/2.0f), ((p0.y + p1.y)/2.0f));
 				Points midPY = new Points(((p1.x + p2.x)/2.0f), ((p1.y + p2.y)/2.0f));
 				
-				hpf.setX(midPX.x);
-				hpf.setY(midPY.y);
+				hpf.setX(midPX.x + (adjX/2.0f));
+				hpf.setY(midPY.y + (adjY/2.0f));
 				
 				int seatIndx = confArr[x][1];
 				int wallPrefIndx = confArr[x][2];
 				int needsWall = confArr[x][3];
 				
-				JOptionPane.showMessageDialog(null, (confArr[x][0] + 1) + ", " + (confArr[x][1] + 1));
-				placeFurnBoxes(hpf, seatIndx, wallPrefIndx, needsWall);
+				if((bIgnoreWithoutWall) && (needsWall == 0))
+				{
+					bIsSCSWithWall = false;
+					continue;
+				}
+				else if (needsWall == 1)
+				{
+					bIsSCSWithWall = true;
+				}
+				
+				JOptionPane.showMessageDialog(null, confArr[x][0] + ", " + confArr[x][1] + " : " + wallPrefIndx + " -> " + confArr[x][3]);
+				placeFurnBoxesTest(hpf, seatIndx, wallPrefIndx, needsWall);
 			}
 		}
 		
@@ -684,7 +748,7 @@ public class PhoenixSCS extends Plugin
 			return finalWSList;
 		}
 		
-		public void placeSCSRectWithSnap(List<WallSegement> finalWSList, HomePieceOfFurniture scsRect, List<WallSegement> inWSList, List<WallSegement> validWSList, float tolr, int scsSeatingIndx, int scsWallPrefIndx, int scsNeedsWall)
+		public void placeSCSRectWithSnap(List<WallSegement> finalWSList, HomePieceOfFurniture scsRect, List<WallSegement> inWSList, List<WallSegement> validWSList, float tolr, int scsConfIndx, int scsSeatingIndx, int scsWallPrefIndx, int scsNeedsWall)
 		{
 			boolean bSuccess = false;
 			
@@ -712,37 +776,49 @@ public class PhoenixSCS extends Plugin
 					placeFurnParallelToWall(ls, hpPlaced, pcsPoint);						
 					chkFurnOrient(hpPlaced, ws, tolerance);		// returns orientation (180*)
 
-					checkAndSnap(hpPlaced, inWSList, tolr, scsWallPrefIndx);
-
-					List<HomePieceOfFurniture> hpShiftList = checkAndShift(hpPlaced, inWSList, tolr, scsWallPrefIndx);
+					boolean bValid1 = checkAndSnap(hpPlaced, inWSList, tolr, scsWallPrefIndx);
 					
-					String rectName = hpPlaced.getName();
-					home.deletePieceOfFurniture(hpPlaced);
-					
-					//JOptionPane.showMessageDialog(null, "hpShiftList : " + hpShiftList.size());
-					
-					int counter3 = 1; 
-					
-					for(HomePieceOfFurniture hpShift : hpShiftList)
+					if(bValid1)
 					{
-						hpShift.setName(rectName + "_" + counter3);
-						home.addPieceOfFurniture(hpShift);
+						List<HomePieceOfFurniture> hpShiftList = checkAndShift(hpPlaced, inWSList, tolr, scsWallPrefIndx);
 						
-						bSuccess = checkInsideHome(finalWSList, hpShift, PLACEMENT_TOLERANCE);
-						//JOptionPane.showMessageDialog(null, "bSuccess : " + bSuccess);
-
-						if(bSuccess)
-						{	
-							//JOptionPane.showMessageDialog(null, "bSuccess : " + bSuccess);
-							placeFurnBoxes(hpShift, scsSeatingIndx, scsWallPrefIndx, scsNeedsWall);
-						}
-						else
-							home.deletePieceOfFurniture(hpShift);
+						String rectName = hpPlaced.getName();
+						home.deletePieceOfFurniture(hpPlaced);
 						
-						counter3++; 
-					}					
-									
-					counter2++;
+						//JOptionPane.showMessageDialog(null, "hpShiftList : " + hpShiftList.size());
+						
+						int counter3 = 1; 
+						
+						for(HomePieceOfFurniture hpShift : hpShiftList)
+						{
+							hpShift.setName(rectName + "_" + counter3);
+							home.addPieceOfFurniture(hpShift);
+							
+							bSuccess = checkInsideHome(finalWSList, hpShift, PLACEMENT_TOLERANCE);
+							//JOptionPane.showMessageDialog(null, "bSuccess (Snap + Shift) : " + bSuccess);
+	
+							if(bSuccess)
+							{	
+								Design des = new Design(hpShift, scsConfIndx, scsSeatingIndx, scsWallPrefIndx);
+								
+								boolean bCheck = checkDesignList(des);
+								
+								if(bCheck)
+								{
+									//JOptionPane.showMessageDialog(null, "bCheck : " + bCheck);
+									placeFurnBoxes(hpShift, scsSeatingIndx, scsWallPrefIndx, scsNeedsWall);
+								}
+								else
+									home.deletePieceOfFurniture(hpShift);
+							}
+							else
+								home.deletePieceOfFurniture(hpShift);
+							
+							counter3++; 
+						}					
+										
+						counter2++;
+					}
 				}
 				
 				home.deletePieceOfFurniture(hpfP);
@@ -1288,7 +1364,7 @@ public class PhoenixSCS extends Plugin
 
 				//JOptionPane.showMessageDialog(null, furnName + ", furnX : " + furnX + ", furnY : " + furnY);
 				//JOptionPane.showMessageDialog(null, furnName + " -> pcsAngle : " + pcsAngle + ", furnAng : " + furnAng);
-
+				
 				HomePieceOfFurniture hpf = getFurnItem(furnName).clone();
 				hpf.setName(furnType + "_" + furnName + "_" + seatingIndx + "_" + f);
 				hpf.setX(furnX);
@@ -1296,7 +1372,14 @@ public class PhoenixSCS extends Plugin
 				if(furnName.equalsIgnoreCase("media_cabinet"))
 				{
 					hpf.setY(furnY - (0.5f*hpf.getDepth()));
-					//JOptionPane.showMessageDialog(null, furnName + " -> furnAng : " + furnAng);
+				}
+				else if(furnName.equalsIgnoreCase("flower_vase"))
+				{
+					hpf.setY(furnY - (0.5f*hpf.getDepth()));
+				}
+				else if(furnName.equalsIgnoreCase("tv_stand"))
+				{
+					hpf.setY(furnY - (0.5f*hpf.getDepth()));
 				}
 				else if(furnName.equalsIgnoreCase("wall_painting"))
 				{
@@ -1375,12 +1458,139 @@ public class PhoenixSCS extends Plugin
 			furnGrp.setAngle(0.0f);
 		}
 		
+		public void placeFurnBoxesTest(HomePieceOfFurniture scsRect, int seatingIndx, int wallPrefIndx, int scsNeedsWall)
+		{			
+			bckWall = null;
+
+			List<HomePieceOfFurniture> scsFurnList = new ArrayList<HomePieceOfFurniture>();
+			
+			float[][] scsRectP = scsRect.getPoints();
+
+			Points refOrigin = new Points(scsRectP[0][0], scsRectP[0][1]);			
+			//putMarkers(refOrigin, 1);
+
+			float scsAngle = scsRect.getAngle();
+
+			float[][] seatingConf = getSeatingConfigList(SCS_RECT_W, (scsRect.getDepth()/CONV_FT_CM), (scsRect.getWidth()/CONV_FT_CM), seatingIndx);
+			//JOptionPane.showMessageDialog(null, "seatingConf : " + seatingIndx + "\n\n" + Arrays.deepToString(seatingConf).replaceAll("],", "],\n"));
+			
+			for(int f = 0; f < seatingConf.length; f++)
+			{						
+				int furnType = new Float(seatingConf[f][0]).intValue();
+				
+				String furnName = seatingTypeArr[furnType];
+
+				float furnX = refOrigin.x + seatingConf[f][1];
+				float furnY = refOrigin.y + seatingConf[f][2];
+				float furnAng = (((float) (Math.PI * seatingConf[f][3])) / 180.0f);
+
+				//JOptionPane.showMessageDialog(null, furnName + ", furnX : " + furnX + ", furnY : " + furnY);
+				//JOptionPane.showMessageDialog(null, furnName + " -> pcsAngle : " + pcsAngle + ", furnAng : " + furnAng);
+
+				HomePieceOfFurniture hpf = getFurnItem(furnName).clone();
+				hpf.setName(furnType + "_" + furnName + "_" + seatingIndx + "_" + f);
+				hpf.setX(furnX);
+				
+				if(furnName.equalsIgnoreCase("media_cabinet"))
+				{
+					hpf.setY(furnY - (0.5f*hpf.getDepth()));
+					//JOptionPane.showMessageDialog(null, furnName + " -> furnAng : " + furnAng);
+				}
+				else if(furnName.equalsIgnoreCase("wall_painting"))
+				{
+					hpf.setY(furnY - (0.5f*hpf.getDepth()));
+					hpf.setElevation(seatingConf[f][4]);
+				}
+				else if(furnName.equalsIgnoreCase("flower_vase"))
+				{
+					hpf.setElevation(seatingConf[f][4]);
+					hpf.setY(furnY);
+				}
+				else
+					hpf.setY(furnY);
+					
+				hpf.setAngle(furnAng);				
+				scsFurnList.add(hpf);
+				
+				//JOptionPane.showMessageDialog(null, furnAng);
+			}
+			
+			HomeFurnitureGroup furnGrp = new HomeFurnitureGroup(scsFurnList, (scsRect.getName() + "_Group"));
+			List<HomePieceOfFurniture> realFurnList = new ArrayList<HomePieceOfFurniture>();
+
+			furnGrp.setX(scsRect.getX());
+			furnGrp.setY(scsRect.getY());
+
+			float grpAng = furnGrp.getAngle();
+			furnGrp.setAngle(scsAngle + grpAng);
+
+			for(HomePieceOfFurniture hp : furnGrp.getFurniture())
+			{				
+				home.addPieceOfFurniture(hp);
+			}
+			
+			JOptionPane.showMessageDialog(null, "!!!");
+			
+			/*
+			String name = scsRect.getName();
+			
+			if(bPopulateFurn)
+			{
+				realFurnList = populateFurn(furnGrp, seatingIndx, scsNeedsWall);
+				
+				boolean bSuccess = chkAccessibility(scsRect, realFurnList, tolerance, wallPrefIndx);				
+				//JOptionPane.showMessageDialog(null, bSuccess + " : SCS Design generated !!!");
+				
+				if(bSuccess && realFurnList.size() > 0)
+				{
+					home.deletePieceOfFurniture(scsRect);
+					cleanupMarkers();
+					cleanupLeftoverRects();
+					
+					if(bSaveDesign)
+						saveDesign(home, (name + "_" + ( + validDesignCount + 1)));
+					
+					validDesignCount++;
+				}
+				else
+					home.deletePieceOfFurniture(scsRect);
+			}
+			else
+			{
+				home.deletePieceOfFurniture(scsRect);
+				
+				//JOptionPane.showMessageDialog(null, "PCS Design generated !!!");
+				cleanupMarkers();
+				cleanupLeftoverRects();
+				
+				if(bSaveDesign)
+					saveDesign(home, (name + "_" + ( + validDesignCount + 1)));
+				
+				validDesignCount++;
+			}
+			*/
+			
+			cleanupRealFurnAndWall(furnGrp.getFurniture(), bckWall);
+			cleanupRealFurnAndWall(realFurnList, bckWall);
+			cleanupMarkers();
+			furnGrp.setAngle(0.0f);
+		}
+		
 		public List<HomePieceOfFurniture> populateFurn(HomeFurnitureGroup furnGrp, int seatingIndx, int scsNeedsWall)
 		{		
 			List<HomePieceOfFurniture> hpList = new ArrayList<HomePieceOfFurniture>();
 			
+			freeSubAccBoxList = new ArrayList<String>();
+			
+			for(HomePieceOfFurniture subBoxes : subAccBoxList)
+			{
+				freeSubAccBoxList.add(subBoxes.getName());
+			}
+			
 			for(int h = 0; h <furnGrp.getFurniture().size(); h++)
 			{
+				currSubAccBoxParent = new ArrayList<String>();
+				
 				HomePieceOfFurniture hp = furnGrp.getFurniture().get(h);
 				String[] nameStr = hp.getName().split("_");
 				
@@ -1388,18 +1598,23 @@ public class PhoenixSCS extends Plugin
 				{
 					int indx = Integer.parseInt(nameStr[0]);
 					
-					List<HomePieceOfFurniture> catFurn =  searchCatalog((catNamesArr[indx][0] + "" + seatingIndx + "S"), 10.f, 10.f);
-					//JOptionPane.showMessageDialog(null, (catNamesArr[indx][0] + "" + seatingIndx + "S"));
+					String catName = catNamesArr[indx][0];
+					
+					if(catName.equalsIgnoreCase("center_tables"))
+						catName = "center_table";
+					
+					List<HomePieceOfFurniture> catFurn =  searchCatalog(( catName + seatingIndx + "S"), 10.f, 10.f);
+					//JOptionPane.showMessageDialog(null, (catName + seatingIndx + "S"));
 					
 					if(catFurn.size()> 0)
 					{
 						HomePieceOfFurniture realFurn = catFurn.get(0).clone();
-						realFurn.setName(hp.getName());
+						realFurn.setName("SCS_" + hp.getName());
 						realFurn.setX(hp.getX());
 						realFurn.setY(hp.getY());
 						realFurn.setAngle(hp.getAngle());
 						
-						if(indx == 3)	
+						if(indx == 4)	// Media cabinet
 						{
 							//----> Points hpMid = new Points(hp.getX(), hp.getY());						
 							//----> populateWallFurn(hpMid, catTextArr, 0);  // Not applying wallpaper - as of now
@@ -1409,23 +1624,16 @@ public class PhoenixSCS extends Plugin
 							Points newCoords = getCorrectedFurnXY(hp, realFurn);
 							realFurn.setX(hp.getX() + newCoords.x);
 							realFurn.setY(hp.getY() + newCoords.y);
-							
-							//float newY = hp.getY() + (0.5f*hp.getDepth()) - (0.5f*realFurn.getDepth());
-							//realFurn.setY(newY);
 						}
-						else if(indx == 8)	
+						else if((indx == 9)	|| (indx == 12)) 	 // Wall painting OR TV
 						{
 							realFurn.setElevation(hp.getElevation());
 							
 							Points newCoords = getCorrectedFurnXY(hp, realFurn);
 							realFurn.setX(hp.getX() + newCoords.x);
 							realFurn.setY(hp.getY() + newCoords.y);
-							
-							//float newY = hp.getY() + (0.5f*hp.getDepth()) - (0.5f*realFurn.getDepth());
-							//realFurn.setY(newY);
 						}
-						/*
-						else if(indx == 10)	 // For flower vase
+						else if(indx == 11)	 // Flower vase
 						{
 							int objIndx = new Float(hp.getElevation()).intValue();
 							
@@ -1439,7 +1647,6 @@ public class PhoenixSCS extends Plugin
 								realFurn.setElevation(elev + 0.2f);
 							}							
 						}
-						*/
 						
 						home.deletePieceOfFurniture(hp);
 						
@@ -1448,16 +1655,18 @@ public class PhoenixSCS extends Plugin
 						
 						home.addPieceOfFurniture(realFurn);
 						
-						if(indx == 3)
+						if((indx == 4) || (indx == 12))		// Media cabinet OR TV
 						{
-							bIntersects = checkIntersectWithAllFurns(realFurn, false, false);							
+							bIntersects = checkIntersectWithAllFurnsAndSubBoxes(realFurn, false, false);							
 							clearFurnParams(realFurn);
+							
+							//JOptionPane.showMessageDialog(null, "bIntersects MC/TV: " + bIntersects + " -> " + realFurn.getName());
 							
 							if(!bIntersects)
 								hpList.add(realFurn);
 							else
 							{
-								if(scsNeedsWall == 1)		// Invalid config placement : wrap up
+								if(bIsSCSWithWall)		// Invalid config placement : wrap up
 								{
 									hpList.add(realFurn);
 									cleanupRealFurnAndWall(hpList, bckWall);
@@ -1468,10 +1677,37 @@ public class PhoenixSCS extends Plugin
 									home.deletePieceOfFurniture(realFurn);
 							}
 						}
+						else if((indx == 7) || (indx == 8))
+						{
+							bIntersects = checkIntersectWithAllFurnsAndSubBoxes(realFurn, true, true);							
+							clearFurnParams(realFurn);
+							
+							//JOptionPane.showMessageDialog(null, "bIntersects  AR/CT: " + bIntersects + " -> " + realFurn.getName());
+							
+							if(!bIntersects)
+								hpList.add(realFurn);
+							else
+								home.deletePieceOfFurniture(realFurn);
+						}
+						else if(indx == 10)		// Floor lamp
+						{
+							hpList.add(realFurn);
+						}
 						else
 						{
-							bIntersects = checkIntersectWithAllFurns(realFurn, false, true);							
+							bIntersects = checkIntersectWithAllFurnsAndSubBoxes(realFurn, true, false);							
 							clearFurnParams(realFurn);
+							
+							//JOptionPane.showMessageDialog(null, "bIntersects OTH : " + bIntersects + " -> " + realFurn.getName());
+							
+							// Balcony / Wall opening : check for access 
+							if(bIntersects && !checkSubAccList())
+							{
+								hpList.add(realFurn);
+								cleanupRealFurnAndWall(hpList, bckWall);
+								hpList = new ArrayList<HomePieceOfFurniture>();
+								return hpList;
+							}
 							
 							if(!bIntersects)
 								hpList.add(realFurn);
@@ -1483,10 +1719,11 @@ public class PhoenixSCS extends Plugin
 								return hpList;
 							}
 						}
-					}
-					
+					}					
 				}
 			}
+			
+			//JOptionPane.showMessageDialog(null, "hpList : " + hpList.size() + " -> ---------- ");
 			
 			return hpList;
 		}
@@ -1500,7 +1737,7 @@ public class PhoenixSCS extends Plugin
 			
 			if(fAng == 0)
 			{
-				newCoords.y = (0.5f*furnBox.getDepth()) - (0.5f*realFurn.getDepth());
+				newCoords.y = 0.0f - (0.5f*furnBox.getDepth()) + (0.5f*realFurn.getDepth());
 			}
 			else if(fAng == 90)
 			{
@@ -1508,11 +1745,11 @@ public class PhoenixSCS extends Plugin
 			}
 			else if(fAng == 180)
 			{
-				newCoords.y = 0.0f - (0.5f*furnBox.getDepth()) + (0.5f*realFurn.getDepth());
+				newCoords.y = (0.5f*furnBox.getDepth()) - (0.5f*realFurn.getDepth());
 			}
 			else if(fAng == 270)
 			{
-				newCoords.x =  0.0f - (0.5f*furnBox.getDepth()) + (0.5f*realFurn.getDepth());
+				newCoords.x = 0.0f - (0.5f*furnBox.getDepth()) + (0.5f*realFurn.getDepth());
 			}
 			else
 			{
@@ -1847,7 +2084,7 @@ public class PhoenixSCS extends Plugin
 		public boolean chkAccessibility(HomePieceOfFurniture inPCSRect, List<HomePieceOfFurniture> furnList, float tolr, int wallPrefIndx)
 		{
 			boolean bValid = false;			
-			float mediaCabDepth = 0.0f;
+			float mediaCabDepth = 1.0f;
 			
 			for(HomePieceOfFurniture furn : furnList)
 			{
@@ -1877,6 +2114,9 @@ public class PhoenixSCS extends Plugin
 				
 				for(HomePieceOfFurniture furn : furnList)
 				{
+					bIntersects1 = false;
+					bIntersects2 = false;
+					
 					String fName = furn.getName();
 					
 					HomePieceOfFurniture hpf = searchMatchFurn(furn.getName());
@@ -1926,6 +2166,49 @@ public class PhoenixSCS extends Plugin
 			return bValid;
 		}
 		
+		public boolean checkDesignList(Design tmpDes)
+		{
+			boolean bRet = true;			
+			boolean b1 = false;
+			
+			for(Design d : validDesignList)
+			{
+				b1 = false;
+				
+				if(d.seatingIndx == tmpDes.seatingIndx)
+					b1 = true;
+				
+				if(b1)
+				{
+					//JOptionPane.showMessageDialog(null, "Partial Match !!!");
+					
+					HomePieceOfFurniture h = d.scsRect;
+					HomePieceOfFurniture tmp = tmpDes.scsRect;
+					
+					Points hCenter = new Points(h.getX(), h.getY());
+					Points tmpCenter = new Points(tmp.getX(), tmp.getY());
+					
+					float dist = calcDistance(hCenter, tmpCenter);
+					
+					if(dist <= SIMILAR_DESIGN_TOLERANCE)
+					{
+						//JOptionPane.showMessageDialog(null, "Match !!!");
+						
+						bRet = false;
+						break;
+					}
+
+				}				
+			}
+			
+			if(bRet)
+				validDesignList.add(tmpDes);
+			
+			//JOptionPane.showMessageDialog(null, "designCompList : " + validDesignList.size());
+			
+			return bRet;
+		}
+		
 		// ======================= INIT FUNCTIONS ======================= //
 
 		public void init()
@@ -1949,6 +2232,11 @@ public class PhoenixSCS extends Plugin
 		public void storeAllFurnParams(Home h)
 		{	
 			//String dbgStr = "";
+			
+			HomePieceOfFurniture accBox = searchSimilarFurn("DoorAccBox");
+			
+			if(accBox != null)
+				bCreateAccBoxes = false;
 			
 			for(HomePieceOfFurniture hp: h.getFurniture())
 			{
@@ -1975,8 +2263,11 @@ public class PhoenixSCS extends Plugin
 
 					furnRectsBloated.add(hClone.getPoints());
 					
-					createAccBox(hp, fName.toLowerCase());
+					if(bCreateAccBoxes)
+						createAccBox(hp, fName.toLowerCase());
 				}
+				
+				//JOptionPane.showMessageDialog(null, fName);
 			}
 			
 			//JOptionPane.showMessageDialog(null, dbgStr);
@@ -2085,8 +2376,8 @@ public class PhoenixSCS extends Plugin
 			scsConf = new SCSConfig((6.0f)*CONV_FT_CM, (6.0f)*CONV_FT_CM);
 			scsConfigList.add(scsConf);
 			
-			// Config 3 : 6ft x 8ft
-			scsConf = new SCSConfig((6.0f)*CONV_FT_CM, (8.0f)*CONV_FT_CM);
+			// Config 3 : 8ft x 6ft
+			scsConf = new SCSConfig((8.0f)*CONV_FT_CM, (6.0f)*CONV_FT_CM);
 			scsConfigList.add(scsConf);
 			
 			// Config 4 : 8ft x 8ft
@@ -2111,27 +2402,224 @@ public class PhoenixSCS extends Plugin
 				// -------------------------------- 2 Seater -------------------------------- //
 				case 1: // Seating Config 1
 				{
-					float[][] seatingConf1 = {	{0.0f, (5.0f*x*0.25f)*CONV_FT_CM, (19.0f*x*0.25f)*CONV_FT_CM, 180.0f},
-												{0.0f, (27.0f*x*0.25f)*CONV_FT_CM, (19.0f*x*0.25f)*CONV_FT_CM, 180.0f},	
-												{6.0f, (4.0f*x)*CONV_FT_CM, (3.0f*x)*CONV_FT_CM, 180.0f},
-												{7.0f, (4.0f*x)*CONV_FT_CM, (3.0f*x)*CONV_FT_CM, 0.0f},
-												{8.0f, (4.0f*x)*CONV_FT_CM, (6.0f*x)*CONV_FT_CM, 0.0f}  };
+					float[][] seatingConf1 = {	{0.0f, (x*0.65f)*CONV_FT_CM, (x*0.65f)*CONV_FT_CM, 315.0f},			// 1_sofa1
+												{1.0f, (w - x*0.65f)*CONV_FT_CM, (x*0.65f)*CONV_FT_CM, 45.0f},		// 1_sofa2	
+												{6.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f}  };				// center_table
 					retSeatingConfig = (seatingConf1);
 					break;
 				}
-				// -------------------------------- 4 Seater -------------------------------- //
+				case 2: // Seating Config 2
+				{
+					float[][] seatingConf2 = {	{0.0f, (x*0.56f)*CONV_FT_CM, (x*0.75f)*CONV_FT_CM, 345.0f},			// 1_sofa1
+												{1.0f, (w - x*0.56f)*CONV_FT_CM, (x*0.75f)*CONV_FT_CM, 15.0f},		// 1_sofa2
+												{6.0f, (w*0.5f)*CONV_FT_CM, (y - x*0.45f)*CONV_FT_CM, 180.0f}  };	// center_table
+					retSeatingConfig = (seatingConf2);
+					break;
+				}
+				case 3: // Seating Config 3
+				{
+					float[][] seatingConf3 = {	{2.0f, (w*0.5f)*CONV_FT_CM, (x*0.5f)*CONV_FT_CM, 0.0f},					// 2_sofa
+												{6.0f, (w*0.5f)*CONV_FT_CM, (y*0.58f)*CONV_FT_CM, 0.0f},				// center_table
+												{8.0f, (w*0.5f)*CONV_FT_CM, (y*0.58f)*CONV_FT_CM, 0.0f},				// area_rug
+												{4.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f},					// media_cabinet
+												{9.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f, 106.7f},			// wall_painting
+												{10.0f, (w - x*0.42f)*CONV_FT_CM, (y - x*0.3f)*CONV_FT_CM, 105.0f},		// floor_lamp
+												{11.0f, (x*0.5f)*CONV_FT_CM, (y - x*0.25f)*CONV_FT_CM, 180.0f, 4.0f}};	// flower_vase
+					retSeatingConfig = (seatingConf3);
+					break;
+				}
+				case 4: // Seating Config 4
+				{
+					float[][] seatingConf4 = {	{0.0f, (x*0.7f)*CONV_FT_CM, (x*0.5f)*CONV_FT_CM, 0.0f},					// 1_sofa1
+												{0.0f, (w - x*0.7f)*CONV_FT_CM, (x*0.5f)*CONV_FT_CM, 0.0f},				// 1_sofa1
+												{6.0f, (w*0.5f)*CONV_FT_CM, (y*0.58f)*CONV_FT_CM, 0.0f},				// center_table
+												{8.0f, (w*0.5f)*CONV_FT_CM, (y*0.58f)*CONV_FT_CM, 0.0f},				// area_rug
+												{4.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f},					// media_cabinet
+												{9.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f, 106.7f},			// wall_painting
+												{10.0f, (w - x*0.42f)*CONV_FT_CM, (y - x*0.3f)*CONV_FT_CM, 105.0f},		// floor_lamp
+												{11.0f, (x*0.5f)*CONV_FT_CM, (y - x*0.25f)*CONV_FT_CM, 180.0f, 4.0f}};	// flower_vase
+					retSeatingConfig = (seatingConf4);
+					break;
+				}
+				case 5: // Seating Config 5
+				{
+					float[][] seatingConf5 = {	{3.0f, (w*0.5f)*CONV_FT_CM, (x*0.5f)*CONV_FT_CM, 0.0f},				// 3_sofa
+												{6.0f, (w*0.5f)*CONV_FT_CM, (y*0.58f)*CONV_FT_CM, 0.0f},			// center_table
+												{8.0f, (w*0.5f)*CONV_FT_CM, (y*0.58f)*CONV_FT_CM, 0.0f},			// area_rug
+												{10.0f, (w - x*0.3f)*CONV_FT_CM, (y - x*0.2f)*CONV_FT_CM, 90.0f},	// floor_lamp
+												{12.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f, 80.6f}};		// tv
+					retSeatingConfig = (seatingConf5);
+					break;
+				}
+				case 6: // Seating Config 6
+				{
+					float[][] seatingConf6 = {	{2.0f, (x*1.5f)*CONV_FT_CM, (x*0.5f)*CONV_FT_CM, 0.0f},				// 2_sofa
+												{6.0f, (w*0.5f)*CONV_FT_CM, (y*0.58f)*CONV_FT_CM, 0.0f},			// center_table
+												{8.0f, (w*0.5f)*CONV_FT_CM, (y*0.58f)*CONV_FT_CM, 0.0f},			// area_rug
+												{10.0f, (w - x*0.15f)*CONV_FT_CM, (x*0.3f)*CONV_FT_CM, 60.0f},		// floor_lamp
+												{12.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f, 80.6f}};		// tv
+					retSeatingConfig = (seatingConf6);
+					break;
+				}
+				// -------------------------------- 3 Seater -------------------------------- //
+				case 7: // Seating Config 7
+				{
+					float[][] seatingConf7 = {	{13.0f, (x*1.5f)*CONV_FT_CM, (x)*CONV_FT_CM, 0.0f},					// 3_LL_sofa
+												{6.0f, (w*0.4f)*CONV_FT_CM, (y*0.58f)*CONV_FT_CM, 0.0f},			// center_table
+												{8.0f, (w*0.4f)*CONV_FT_CM, (y*0.58f)*CONV_FT_CM, 0.0f},			// area_rug
+												{4.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f},				// media_cabinet
+												{9.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f, 91.4f},			// wall_painting
+												{10.0f, (x*0.3f)*CONV_FT_CM, (y - x*0.2f)*CONV_FT_CM, 270.0f}};		// floor_lamp
+					retSeatingConfig = (seatingConf7);
+					break;
+				}
 				case 8: // Seating Config 8
 				{
-					float[][] seatingConf8 = {	{1.0f, (0.5f*x)*CONV_FT_CM, (2.0f*x)*CONV_FT_CM, 270.0f},			// 2_sofa
-												{1.0f, (w - x)*CONV_FT_CM, (0.5f*x)*CONV_FT_CM, 0.0f},				// 2_sofa
-												{5.0f, (w - x*1.26f)*CONV_FT_CM, (2.25f*x)*CONV_FT_CM, 90.0f},		// center_table
-												{7.0f, (w - x*1.26f)*CONV_FT_CM, (2.25f*x)*CONV_FT_CM, 90.0f},		// area_rug
-												{6.0f, (x*0.5f)*CONV_FT_CM, (y - x*0.5f)*CONV_FT_CM, 0.0f},			// corner_table
-												{9.0f, (x*0.5f)*CONV_FT_CM, (y - x*0.8f)*CONV_FT_CM, 270.0f},		// floor_lamp
-												{3.0f, (w - x*1.1f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f},			// media_cabinet
-												{8.0f, (w - x*1.1f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f, 106.7f}	};	// wall_painting
-					
+					float[][] seatingConf8 = {	{0.0f, (w*0.5f)*CONV_FT_CM, (x*0.65f)*CONV_FT_CM, 0.0f},			// 1_sofa1
+												{0.0f, (x*0.55f)*CONV_FT_CM, (x*1.65f)*CONV_FT_CM, 300.0f},			// 1_sofa1
+												{0.0f, (w - x*0.55f)*CONV_FT_CM, (x*1.65f)*CONV_FT_CM, 60.0f},		// 1_sofa1
+												{6.0f, (w*0.5f)*CONV_FT_CM, (y*0.62f)*CONV_FT_CM, 0.0f},			// center_table
+												{8.0f, (w*0.5f)*CONV_FT_CM, (y*0.62f)*CONV_FT_CM, 90.0f},			// area_rug
+												{4.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f},				// media_cabinet
+												{9.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f, 91.4f},			// wall_painting
+												{10.0f, (x*0.5f)*CONV_FT_CM, (y- x*0.2f)*CONV_FT_CM, 270.0f}};		// floor_lamp
 					retSeatingConfig = (seatingConf8);
+					break;
+				}
+				case 9: // Seating Config 9
+				{
+					float[][] seatingConf9 = {	{3.0f, (w*0.5f)*CONV_FT_CM, (x*0.5f)*CONV_FT_CM, 0.0f},					// 3_sofa
+												{6.0f, (w*0.5f)*CONV_FT_CM, (y*0.62f)*CONV_FT_CM, 0.0f},				// center_table
+												{8.0f, (w*0.5f)*CONV_FT_CM, (y*0.62f)*CONV_FT_CM, 0.0f},				// area_rug
+												{4.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f},					// media_cabinet
+												{11.0f, (w*0.5f - x*0.4f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f, 4.0f},	// flower_vase
+												{10.0f, (x*0.5f)*CONV_FT_CM, (y - x*0.2f)*CONV_FT_CM, 270.0f}};			// floor_lamp
+					retSeatingConfig = (seatingConf9);
+					break;
+				}
+				case 10: // Seating Config 10
+				{
+					float[][] seatingConf10 = {	{0.0f, (x*0.33f)*CONV_FT_CM, (x*0.7f)*CONV_FT_CM, 315.0f},			// 1_sofa1
+												{1.0f, (w - x*0.33f)*CONV_FT_CM, (x*0.7f)*CONV_FT_CM, 45.0f},		// 1_sofa2
+												{1.0f, (x*0.33f)*CONV_FT_CM, (x*2.5f)*CONV_FT_CM, 225.0f},			// 1_sofa2
+												{0.0f, (w - x*0.33f)*CONV_FT_CM, (x*2.5f)*CONV_FT_CM, 135.0f},		// 1_sofa1
+												{6.0f, (w*0.5f)*CONV_FT_CM, (x*1.6f)*CONV_FT_CM, 0.0f},				// center_table
+												{8.0f, (w*0.5f)*CONV_FT_CM, (x*1.6f)*CONV_FT_CM, 0.0f},				// area_rug
+												{4.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f},				// media_cabinet
+												{9.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f, 91.4f},			// wall_painting
+												{10.0f, (x*0.5f)*CONV_FT_CM, (y- x*0.2f)*CONV_FT_CM, 270.0f}};		// floor_lamp
+					retSeatingConfig = (seatingConf10);
+					break;
+				}
+				// -------------------------------- 4 Seater -------------------------------- //
+				case 11: // Seating Config 11
+				{
+					float[][] seatingConf11 = {	{2.0f, (x*0.5f)*CONV_FT_CM, (x*2.0f)*CONV_FT_CM, 270.0f},			// 2_sofa
+												{2.0f, (w - x*1.0f)*CONV_FT_CM, (x*0.5f)*CONV_FT_CM, 0.0f},			// 2_sofa
+												{6.0f, (w*0.6f)*CONV_FT_CM, (x*1.8f)*CONV_FT_CM, 0.0f},				// center_table
+												{8.0f, (w*0.6f)*CONV_FT_CM, (x*2.28f)*CONV_FT_CM, 90.0f},			// area_rug
+												{7.0f, (x*0.65f)*CONV_FT_CM, (y - x*0.5f)*CONV_FT_CM, 0.0f},		// corner_table
+												{10.0f, (x*0.5f)*CONV_FT_CM, (y - x*0.3f)*CONV_FT_CM, 270.0f},		// floor_lamp
+												{4.0f, (w - x*0.8f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f}};			// media_cabinet
+					retSeatingConfig = (seatingConf11);
+					break;
+				}
+				case 12: // Seating Config 12
+				{
+					float[][] seatingConf12 = {	{2.0f, (x*0.5f)*CONV_FT_CM, (x*2.0f)*CONV_FT_CM, 270.0f},			// 2_sofa
+												{2.0f, (w - x)*CONV_FT_CM, (x*0.5f)*CONV_FT_CM, 0.0f},				// 2_sofa
+												{6.0f, (w - x*1.2f)*CONV_FT_CM, (x*2.25f)*CONV_FT_CM, 90.0f},		// center_table
+												{8.0f, (w - x*1.2f)*CONV_FT_CM, (x*2.25f)*CONV_FT_CM, 90.0f},		// area_rug
+												{7.0f, (x*0.5f)*CONV_FT_CM, (y - x*0.5f)*CONV_FT_CM, 0.0f},			// corner_table
+												{10.0f, (x*0.5f)*CONV_FT_CM, (y - x*0.8f)*CONV_FT_CM, 270.0f},		// floor_lamp
+												{4.0f, (w - x*1.1f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f},			// media_cabinet
+												{9.0f, (w - x*1.1f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f, 106.7f}	};	// wall_painting
+					retSeatingConfig = (seatingConf12);
+					break;
+				}
+				case 13: // Seating Config 13
+				{
+					float[][] seatingConf13 = {	{3.0f, (w*0.5f)*CONV_FT_CM, (x*0.5f)*CONV_FT_CM, 0.0f},				// 3_sofa
+												{0.0f, (x*0.54f)*CONV_FT_CM, (y*0.65f)*CONV_FT_CM, 210.0f},			// 1_sofa
+												{0.0f, (w - x*0.54f)*CONV_FT_CM, (y*0.65f)*CONV_FT_CM, 150.0f},		// 1_sofa
+												{6.0f, (w*0.5f)*CONV_FT_CM, (y*0.45f)*CONV_FT_CM, 0.0f},			// center_table
+												{8.0f, (w*0.5f)*CONV_FT_CM, (y*0.5f)*CONV_FT_CM, 0.0f},				// area_rug
+												{10.0f, (x*0.5f)*CONV_FT_CM, (y - x*0.7f)*CONV_FT_CM, 270.0f},		// floor_lamp
+												{4.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f},				// media_cabinet
+												{9.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f, 91.4f}	};		// wall_painting				
+					retSeatingConfig = (seatingConf13);
+					break;
+				}
+				case 14: // Seating Config 14
+				{
+					float[][] seatingConf14 = {	{0.0f, (x*0.5f)*CONV_FT_CM, (x*1.4f)*CONV_FT_CM, 270.0f},			// 1_sofa
+												{0.0f, (x*0.5f)*CONV_FT_CM, (x*2.6f)*CONV_FT_CM, 270.0f},			// 1_sofa
+												{2.0f, (w - x*0.5f)*CONV_FT_CM, (x*2.0f)*CONV_FT_CM, 90.0f},		// 2_sofa
+												{6.0f, (w - x*0.5f)*CONV_FT_CM, (x*0.5f)*CONV_FT_CM, 0.0f},			// center_table
+												{8.0f, (w*0.5f)*CONV_FT_CM, (x*2.0f)*CONV_FT_CM, 0.0f},				// area_rug
+												{7.0f, (x*0.4f)*CONV_FT_CM, (x*0.4f)*CONV_FT_CM, 0.0f},				// corner_table
+												{10.0f, (x*0.5f)*CONV_FT_CM, (y - x*0.7f)*CONV_FT_CM, 270.0f},		// floor_lamp
+												{4.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f},				// media_cabinet
+												{9.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f, 91.4f}	};		// wall_painting				
+					retSeatingConfig = (seatingConf14);
+					break;
+				}
+				case 15: // Seating Config 15
+				{
+					float[][] seatingConf15 = {	{13.0f, (w - x*1.5f)*CONV_FT_CM, (x*1.0f)*CONV_FT_CM, 0.0f},			// 3_RL_sofa
+												{6.0f, (x*1.26f)*CONV_FT_CM, (x*1.85f)*CONV_FT_CM, 0.0f},				// center_table
+												{8.0f, (x*1.45f)*CONV_FT_CM, (x*2.0f)*CONV_FT_CM, 0.0f},				// area_rug
+												{10.0f, (w - x*1.25f)*CONV_FT_CM, (y - x*0.7f)*CONV_FT_CM, 270.0f},		// floor_lamp
+												{4.0f, (x*0.83f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f},					// media_cabinet
+												{9.0f, (x*0.83f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f, 91.4f}	};			// wall_painting				
+					retSeatingConfig = (seatingConf15);
+					break;
+				}
+				case 16: // Seating Config 16
+				{
+					float[][] seatingConf16 = {	{2.0f, (w*0.5f)*CONV_FT_CM, (x*0.5f)*CONV_FT_CM, 0.0f},				// 2_sofa
+												{0.0f, (x*0.5f)*CONV_FT_CM, (x*2.0f)*CONV_FT_CM, 270.0f},			// 1_sofa
+												{0.0f, (w - x*0.5f)*CONV_FT_CM, (x*2.0f)*CONV_FT_CM, 90.0f},		// 1_sofa
+												{6.0f, (w*0.5f)*CONV_FT_CM, (x*2.0f)*CONV_FT_CM, 0.0f},				// center_table
+												{8.0f, (w*0.5f)*CONV_FT_CM, (x*2.0f)*CONV_FT_CM, 0.0f},				// area_rug
+												{10.0f, (x*0.5f)*CONV_FT_CM, (y- x*0.36f)*CONV_FT_CM, 270.0f},		// floor_lamp
+												{4.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f} };				// media_cabinet			
+					retSeatingConfig = (seatingConf16);
+					break;
+				}
+				case 17: // Seating Config 17
+				{
+					float[][] seatingConf17 = {	{3.0f, (w - x*1.5f)*CONV_FT_CM, (x*0.5f)*CONV_FT_CM, 0.0f},			// 3_sofa
+												{2.0f, (x*0.5f)*CONV_FT_CM, (x*2.0f)*CONV_FT_CM, 270.0f},			// 2_sofa
+												{6.0f, (w*0.6f)*CONV_FT_CM, (x*2.0f)*CONV_FT_CM, 0.0f},				// center_table
+												{8.0f, (w*0.6f)*CONV_FT_CM, (x*2.0f)*CONV_FT_CM, 0.0f},				// area_rug
+												{10.0f, (x*0.68f)*CONV_FT_CM, (y - x*0.36f)*CONV_FT_CM, 270.0f},	// floor_lamp
+												{4.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f} };				// media_cabinet			
+					retSeatingConfig = (seatingConf17);
+					break;
+				}
+				case 18: // Seating Config 18
+				{
+					float[][] seatingConf18 = {	{2.0f, (w*0.5f)*CONV_FT_CM, (x*0.5f)*CONV_FT_CM, 0.0f},				// 2_sofa
+												{2.0f, (x*0.5f)*CONV_FT_CM, (x*2.0f)*CONV_FT_CM, 270.0f},			// 2_sofa
+												{2.0f, (w - x*0.5f)*CONV_FT_CM, (x*2.0f)*CONV_FT_CM, 90.0f},		// 2_sofa
+												{6.0f, (w*0.5f)*CONV_FT_CM, (x*2.0f)*CONV_FT_CM, 0.0f},				// center_table
+												{8.0f, (w*0.5f)*CONV_FT_CM, (x*2.0f)*CONV_FT_CM, 0.0f},				// area_rug
+												{7.0f, (x*0.5f)*CONV_FT_CM, (x*0.5f)*CONV_FT_CM, 0.0f},				// corner_table
+												{7.0f, (w - x*0.5f)*CONV_FT_CM, (x*0.5f)*CONV_FT_CM, 0.0f},			// corner_table
+												{10.0f, (x*0.68f)*CONV_FT_CM, (y - x*0.36f)*CONV_FT_CM, 270.0f},	// floor_lamp
+												{4.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f} };				// media_cabinet			
+					retSeatingConfig = (seatingConf18);
+					break;
+				}
+				case 19: // Seating Config 19
+				{
+					float[][] seatingConf19 = {	{15.0f, (w*0.5f)*CONV_FT_CM, (x*1.5f)*CONV_FT_CM, 0.0f},			// 2_sofa
+												{6.0f, (w - x*1.5f)*CONV_FT_CM, (x*2.1f)*CONV_FT_CM, 0.0f},			// center_table
+												{8.0f, (w - x*1.5f)*CONV_FT_CM, (x*2.1f)*CONV_FT_CM, 0.0f},			// area_rug
+												{10.0f, (x*0.68f)*CONV_FT_CM, (y - x*0.36f)*CONV_FT_CM, 270.0f},	// floor_lamp
+												{4.0f, (w*0.5f)*CONV_FT_CM, (y)*CONV_FT_CM, 180.0f} };				// media_cabinet			
+					retSeatingConfig = (seatingConf19);
 					break;
 				}
 				default:
@@ -2145,8 +2633,108 @@ public class PhoenixSCS extends Plugin
 		
 		// ======================= UTIL FUNCTIONS ======================= //
 		
-		public void createAccBox(HomePieceOfFurniture hpf, String fName)
+		public boolean checkSubAccList()
 		{
+			boolean bHasAccess = true;
+			
+			/*
+			for(String boxName : freeSubAccBoxList)
+			{
+				boolean bHasAccessChk = false;
+				
+				for(String parentName : currSubAccBoxParent)
+				{
+					if(boxName.startsWith(parentName))
+						bHasAccessChk = true;
+				}
+				
+				if(!bHasAccessChk)
+				{
+					bHasAccess = false;
+					break;
+				}
+			}
+			*/
+			
+			for(String parentName : currSubAccBoxParent)
+			{
+				if(freeSubAccBoxList.contains(parentName))
+					bHasAccess = true;
+			}
+			
+			JOptionPane.showMessageDialog(null, "bHasAccess : " + bHasAccess + ", freeSubAccBoxList : " + freeSubAccBoxList.size());
+			
+			printSubList();
+			
+			return bHasAccess;
+		}
+		
+		
+		public List<String> checkSubAccBoxes(HomePieceOfFurniture hpf, String parentAccBox, List<String> inFreeSubBoxList)
+		{			
+			boolean bIntersects = false;
+			
+			for(HomePieceOfFurniture subAccBox : subAccBoxList)
+			{
+				String boxName = subAccBox.getName().toLowerCase();
+				
+				if(boxName.startsWith(parentAccBox))
+				{
+					bIntersects = false;	
+					home.addPieceOfFurniture(subAccBox);					
+
+					float[][] refSubAccBoxRect = subAccBox.getPoints();
+
+					for(int f = 0; f < refSubAccBoxRect.length; f++)
+					{
+						Points startLine = new Points(refSubAccBoxRect[f][0], refSubAccBoxRect[f][1]);
+
+						Points endLine = null;
+
+						if(f == (refSubAccBoxRect.length - 1))
+							endLine = new Points(refSubAccBoxRect[0][0], refSubAccBoxRect[0][1]);
+						else
+							endLine = new Points(refSubAccBoxRect[f+1][0], refSubAccBoxRect[f+1][1]);				
+
+						LineSegement ls = new LineSegement(startLine, endLine);
+						
+						List<Intersect> interList = checkIntersect(ls, hpf.getName());
+
+						for(Intersect inter : interList)
+						{
+							if(inter != null)
+							{
+								bIntersects = checkPointInBetween(inter.p, ls.startP, ls.endP, FURN_TOLERANCE);
+
+								if(bIntersects)
+									break;
+							}
+							//putMarkers(inter.p, 3);
+						}
+					}
+					
+					// Check if it lies completely inside
+					if(!bIntersects)
+						bIntersects = subAccBox.containsPoint(hpf.getX(), hpf.getY(), FURN_TOLERANCE);
+
+					if(bIntersects)
+					{
+						int indx = inFreeSubBoxList.indexOf(boxName);
+						
+						if(indx > -1)
+							inFreeSubBoxList.remove(indx);
+					}
+					
+					home.deletePieceOfFurniture(subAccBox);
+				}
+			}
+			
+			return inFreeSubBoxList;
+		}
+		
+		
+		public void createAccBox(HomePieceOfFurniture hpf, String fName)
+		{			
 			String accessBoxName = "";
 
 			float dist = (0.5f * ACCESSBOX_DEPTH);
@@ -2201,6 +2789,8 @@ public class PhoenixSCS extends Plugin
 				}
 			}
 
+			//JOptionPane.showMessageDialog(null, accessBoxName);
+			
 			if(innerP.size() > 1)
 			{				
 				LineSegement ls = new LineSegement(innerP.get(0), innerP.get(1));
@@ -2240,7 +2830,7 @@ public class PhoenixSCS extends Plugin
 									{
 										nameCount++;
 										Points p = snapPList.get(0);
-										//putMarkers(p, 3);
+										putMarkers(p, 3);
 									
 										//JOptionPane.showMessageDialog(null, "nameCount : " + nameCount);
 										
@@ -2253,6 +2843,8 @@ public class PhoenixSCS extends Plugin
 										accBoxFurnSub.setWidth(ACCESSBOX_MIN_WIDTH);
 										accBoxFurnSub.setAngle(hpf.getAngle());
 	
+										subAccBoxList.add(accBoxFurnSub);
+										
 										//home.addPieceOfFurniture(accBoxFurnSub);
 										//storeFurnParams(accBoxFurnSub);
 									}
@@ -2284,7 +2876,7 @@ public class PhoenixSCS extends Plugin
 									{
 										nameCount++;
 										Points p = snapPList.get(0);
-										//putMarkers(p, 4);
+										putMarkers(p, 4);
 									
 										//JOptionPane.showMessageDialog(null, "nameCount : " + nameCount);
 										
@@ -2297,6 +2889,8 @@ public class PhoenixSCS extends Plugin
 										accBoxFurnSub.setWidth(ACCESSBOX_MIN_WIDTH);
 										accBoxFurnSub.setAngle(hpf.getAngle());
 	
+										subAccBoxList.add(accBoxFurnSub);
+										
 										//home.addPieceOfFurniture(accBoxFurnSub);
 										//storeFurnParams(accBoxFurnSub);
 									}
@@ -2786,6 +3380,73 @@ public class PhoenixSCS extends Plugin
 			return matchFurn;
 		}
 		
+		public HomePieceOfFurniture searchSimilarFurn(String furnName)
+		{
+			HomePieceOfFurniture matchFurn = null;
+			
+			try 
+			{				
+				List<HomePieceOfFurniture> catPOF = home.getFurniture();
+
+				for(int p = 0; p < catPOF.size(); p++ )
+				{
+					if(catPOF.get(p).getName().contains(furnName))
+					{
+						matchFurn = catPOF.get(p);
+						break;
+					}
+				}			
+			}
+			catch(Exception e){e.printStackTrace();}
+
+			return matchFurn;
+		}
+		
+		public HomePieceOfFurniture createPCSRect()
+		{
+			HomePieceOfFurniture pcsRect = getFurnItem("box_invisible").clone();
+			
+			List<HomePieceOfFurniture> pcsFurnList = new ArrayList<HomePieceOfFurniture>();
+			
+			try 
+			{				
+				List<HomePieceOfFurniture> hpList = home.getFurniture();
+
+				for(int p = 0; p < hpList.size(); p++ )
+				{
+					String furnName = hpList.get(p).getName();
+					if(furnName.startsWith("PCS") && furnName.contains("area_rug"))
+					{
+						pcsFurnList.add(hpList.get(p));
+					}
+					
+					/*
+					if(hpList.get(p).getName().startsWith("PCS"))
+					{
+						pcsFurnList.add(hpList.get(p));
+					}
+					*/
+				}
+				
+				HomeFurnitureGroup furnGrp = new HomeFurnitureGroup(pcsFurnList, ("PCS_Group"));
+				
+				if(pcsRect != null)
+				{
+					pcsRect.setName("PCSRect");
+					pcsRect.setX(furnGrp.getX());
+					pcsRect.setY(furnGrp.getY());
+					pcsRect.setAngle(furnGrp.getAngle());
+					pcsRect.setWidth(furnGrp.getWidth());
+					pcsRect.setDepth(furnGrp.getDepth());
+					
+					home.addPieceOfFurniture(pcsRect);
+				}				
+			}
+			catch(Exception e){e.printStackTrace();}
+
+			return pcsRect;
+		}
+		
 		public List<HomeTexture> searchMatchTexture(String textName)
 		{			
 			List<HomeTexture> txtList = new ArrayList<HomeTexture>();
@@ -2995,6 +3656,7 @@ public class PhoenixSCS extends Plugin
 			}
 		}
 
+		/*
 		public boolean checkIntersectWithAllFurns(HomePieceOfFurniture hpf, boolean bAddAccessibility, boolean bIgnoreAccBox)
 		{
 			boolean bIntersects = false;
@@ -3052,6 +3714,7 @@ public class PhoenixSCS extends Plugin
 						}
 					}
 					
+					// Check if it lies completely inside
 					if(!bIntersects)
 					{
 						HomePieceOfFurniture refFurn = furnList.get(x);
@@ -3068,6 +3731,128 @@ public class PhoenixSCS extends Plugin
 
 			return bIntersects;
 		}
+		*/
+		
+		public boolean checkIntersectWithAllFurnsAndSubBoxes(HomePieceOfFurniture hpf, boolean bIgnoreWindow, boolean bIgnoreAccBox)
+		{
+			boolean bIntersects = false;
+			boolean bCheckSubBoxes = false;
+			
+
+			for(int x = 0 ; x < furnIds.size(); x++)
+			{	
+				String fName = furnIds.get(x).toLowerCase();
+
+				if(bIgnoreAccBox)
+				{
+					if(fwsExpIds.contains(fName) && !fName.startsWith("dooracc"))
+					{
+						//JOptionPane.showMessageDialog(null, "bIgnoreAccBox");
+
+						bIntersects = false;
+						continue;
+					}
+				}
+				
+				if(bIgnoreWindow)
+				{
+					if(fwsExpIds.contains("window") || !fName.contains("balcony") || !fName.contains("wall opening"))
+					{
+						bIntersects = false;
+						continue;
+					}
+				}
+				
+				if(!hpf.getName().equalsIgnoreCase(furnIds.get(x)))
+				{	
+					String refFurnName = furnIds.get(x);
+					
+					// Ignoring furnitures in SCS as of now , to be take care in config
+					if(refFurnName.startsWith("SCS"))
+					{
+						bCheckSubBoxes = false;
+						continue;
+					}
+					
+					if(refFurnName.startsWith("BalcAccBox") || refFurnName.startsWith("WallOAccBox"))
+						bCheckSubBoxes = true;
+					
+					float[][] refFurnRect = furnRects.get(x);
+
+					for(int f = 0; f < refFurnRect.length; f++)
+					{
+						Points startLine = new Points(refFurnRect[f][0], refFurnRect[f][1]);
+
+						Points endLine = null;
+
+						if(f == (refFurnRect.length - 1))
+							endLine = new Points(refFurnRect[0][0], refFurnRect[0][1]);
+						else
+							endLine = new Points(refFurnRect[f+1][0], refFurnRect[f+1][1]);				
+
+						LineSegement ls = new LineSegement(startLine, endLine);
+
+						// For Accessibility check
+						List<Intersect> interList = new ArrayList<Intersect>();
+
+						interList = checkIntersect(ls, hpf.getName());
+
+						for(Intersect inter : interList)
+						{
+							if(inter != null)
+							{
+								bIntersects = checkPointInBetween(inter.p, ls.startP, ls.endP, FURN_TOLERANCE);
+
+								if(bIntersects)
+									break;
+							}
+							//putMarkers(inter.p, 3);
+						}
+					}
+					
+					// Check if it lies completely inside
+					if(!bIntersects)
+					{
+						HomePieceOfFurniture refFurn = furnList.get(x);
+						bIntersects = refFurn.containsPoint(hpf.getX(), hpf.getY(), FURN_TOLERANCE);
+					}
+					
+					if(bIntersects && bCheckSubBoxes)
+					{
+						currSubAccBoxParent.add(refFurnName);
+						freeSubAccBoxList = checkSubAccBoxes(hpf, refFurnName, freeSubAccBoxList);
+					}
+					
+					if(bIntersects)
+						break;
+				}
+
+				if(bIntersects)
+					break;
+			}
+
+			return bIntersects;
+		}
+		
+		public void printSubList()
+		{
+			String dbgStr = "=== currSubAccBoxParent ===\n";
+			
+			for(String str : currSubAccBoxParent)
+			{
+				dbgStr += str + "\n";
+			}	
+			
+			dbgStr += "\n\n=== freeSubAccBoxList ===\n";
+			
+			for(String str : freeSubAccBoxList)
+			{
+				dbgStr += str + "\n";
+			}
+			
+			JOptionPane.showMessageDialog(null, dbgStr);
+		}
+		
 		
 		public boolean checkIntersectWSWithAllFurns(WallSegement ws, boolean bAddAccessibility)
 		{

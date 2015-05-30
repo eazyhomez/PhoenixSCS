@@ -2,7 +2,9 @@ Modifications:
 --------------
 1. Add new SCS config (No. 8)(lamp + corner table moved)
 2. Check whether SCS needs wall and reject placements accordingly
-
+3. Check for Accessibility criteria for Balcony and Wall openings
+4. Check for duplicates
+5. Ignore other SCS elements for intersection (to be taken care in config)
 
 Prep:
 ------
